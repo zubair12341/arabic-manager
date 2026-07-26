@@ -39,8 +39,8 @@ function ReportPage() {
     queryFn: async (): Promise<Row[]> => {
       const { data, error } = await supabase.rpc("restaurant_vendor_report", {
         _restaurant_id: restId,
-        _from: from ? new Date(from).toISOString() : null,
-        _to: to ? new Date(new Date(to).getTime() + 86400000).toISOString() : null,
+        _from: from ? new Date(from).toISOString() : undefined,
+        _to: to ? new Date(new Date(to).getTime() + 86400000).toISOString() : undefined,
       });
       if (error) throw error;
       return (data ?? []) as Row[];

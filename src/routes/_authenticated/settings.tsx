@@ -46,21 +46,27 @@ function AppSettingsPanel() {
   const s = useQuery(settingsQuery());
   const [sym, setSym] = useState<string | null>(null);
   const [name, setName] = useState<string | null>(null);
-  const saved = s.data ?? { currency_symbol: "$", app_name: "Vendor & Cash Manager" };
+  const [code, setCode] = useState<string | null>(null);
+  const saved = s.data ?? { currency_symbol: "$", business_name: "My Restaurant Group", currency_code: "USD" };
   const mut = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.from("app_settings").upsert({
-        id: 1, currency_symbol: sym ?? saved.currency_symbol, app_name: name ?? saved.app_name,
-      });
+      const payload: any = {
+        id: 1,
+        currency_symbol: sym ?? saved.currency_symbol,
+        business_name: name ?? saved.business_name,
+        currency_code: code ?? saved.currency_code,
+      };
+      const { error } = await supabase.from("app_settings").upsert(payload);
       if (error) throw error;
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["app-settings"] }); toast.success("Settings saved"); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["app_settings"] }); toast.success("Settings saved"); },
     onError: (e: Error) => toast.error(e.message),
   });
   return (
     <div className="max-w-md space-y-3">
-      <div><Label>App name</Label><Input defaultValue={saved.app_name} onChange={(e) => setName(e.target.value)} /></div>
+      <div><Label>Business name</Label><Input defaultValue={saved.business_name} onChange={(e) => setName(e.target.value)} /></div>
       <div><Label>Currency symbol</Label><Input defaultValue={saved.currency_symbol} onChange={(e) => setSym(e.target.value)} maxLength={3} /></div>
+      <div><Label>Currency code</Label><Input defaultValue={saved.currency_code} onChange={(e) => setCode(e.target.value)} maxLength={5} /></div>
       <Button onClick={() => mut.mutate()} disabled={mut.isPending}>{mut.isPending ? "Saving…" : "Save settings"}</Button>
     </div>
   );
