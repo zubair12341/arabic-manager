@@ -43,7 +43,8 @@ function SettingsPage() {
 
 function AppSettingsPanel() {
   const qc = useQueryClient();
-  const { isAdmin } = useSession();
+  const { session } = useSession();
+  const isAdmin = useIsAdmin(session?.user.id);
   const s = useQuery(settingsQuery());
   const [sym, setSym] = useState<string | null>(null);
   const [name, setName] = useState<string | null>(null);
