@@ -24,8 +24,8 @@ export const Route = createFileRoute("/_authenticated/vendors")({
   component: VendorsPage,
 });
 
-type FormState = { id?: string; restaurant_id: string; name: string; phone: string; address: string; opening_balance: string; is_active: boolean };
-const empty = (rid = ""): FormState => ({ restaurant_id: rid, name: "", phone: "", address: "", opening_balance: "0", is_active: true });
+type FormState = { id?: string; restaurant_id: string; name: string; phone: string; address: string; account_number: string; opening_balance: string; is_active: boolean };
+const empty = (rid = ""): FormState => ({ restaurant_id: rid, name: "", phone: "", address: "", account_number: "", opening_balance: "0", is_active: true });
 
 function VendorsPage() {
   const qc = useQueryClient();
