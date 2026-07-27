@@ -1,15 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { restaurantsQuery } from "@/lib/queries";
+import { restaurantsQuery, vaultsQuery } from "@/lib/queries";
 import { settingsQuery } from "@/lib/settings";
 import { supabase } from "@/integrations/supabase/client";
-import { PageHeader, TableSkeleton, EmptyState } from "@/components/page-shell";
+import { PageHeader, TableSkeleton, EmptyState, StatCard } from "@/components/page-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Download } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { fmtMoney } from "@/lib/format";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
