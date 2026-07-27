@@ -142,6 +142,8 @@ function ReportPage() {
             </TableBody>
           </Table>
         </div>}
+        </>
+      )}
     </div>
   );
 }
