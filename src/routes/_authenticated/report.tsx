@@ -1,15 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { restaurantsQuery } from "@/lib/queries";
+import { restaurantsQuery, vaultsQuery } from "@/lib/queries";
 import { settingsQuery } from "@/lib/settings";
 import { supabase } from "@/integrations/supabase/client";
-import { PageHeader, TableSkeleton, EmptyState } from "@/components/page-shell";
+import { PageHeader, TableSkeleton, EmptyState, StatCard } from "@/components/page-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Download } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { fmtMoney } from "@/lib/format";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -28,6 +28,7 @@ type Row = {
 function ReportPage() {
   const restaurants = useQuery(restaurantsQuery());
   const settings = useQuery(settingsQuery());
+  const vaults = useQuery(vaultsQuery());
   const sym = settings.data?.currency_symbol ?? "$";
   const [restId, setRestId] = useState("");
   const [from, setFrom] = useState("");
@@ -56,15 +57,26 @@ function ReportPage() {
     combined: a.combined + Number(r.total),
   }), { opening: 0, purchased: 0, paid: 0, current: 0, combined: 0 });
 
-  const restName = restaurants.data?.find(r => r.id === restId)?.name ?? "";
+  const restaurant = restaurants.data?.find(r => r.id === restId);
+  const restName = restaurant?.name ?? "";
+
+  const cash = useMemo(() => {
+    const restVaults = (vaults.data ?? []).filter(v => v.restaurant_id === restId);
+    return {
+      opening: Number(restaurant?.opening_cash_balance ?? 0),
+      current: restVaults.reduce((s, v) => s + Number(v.current_balance), 0),
+    };
+  }, [vaults.data, restId, restaurant]);
 
   const exportPdf = () => {
     const doc = new jsPDF();
     doc.setFontSize(14); doc.text(`Vendor Report — ${restName}`, 14, 16);
     doc.setFontSize(9);
-    if (from || to) doc.text(`Period: ${from || "—"} to ${to || "—"}`, 14, 22);
+    let y = 22;
+    if (from || to) { doc.text(`Period: ${from || "—"} to ${to || "—"}`, 14, y); y += 5; }
+    doc.text(`Cash in hand — Opening: ${fmtMoney(cash.opening, sym)}   Current: ${fmtMoney(cash.current, sym)}`, 14, y);
     autoTable(doc, {
-      startY: 26,
+      startY: y + 4,
       head: [["Vendor", "Opening", "Purchased", "Paid", "Current", "Total"]],
       body: rows.map(r => [
         r.vendor_name, fmtMoney(r.opening_balance, sym), fmtMoney(r.total_purchased, sym),
@@ -91,8 +103,13 @@ function ReportPage() {
       </div>
 
       {!restId ? <EmptyState title="Pick a restaurant" description="Choose a restaurant to run the report." /> :
-        report.isLoading ? <TableSkeleton /> :
-        rows.length === 0 ? <EmptyState title="No data" description="No vendors or transactions in the selected period." /> :
+        report.isLoading ? <TableSkeleton /> : (
+        <>
+          <div className="grid gap-2 md:grid-cols-2 mb-4">
+            <StatCard label="Cash in hand — Opening" value={fmtMoney(cash.opening, sym)} />
+            <StatCard label="Cash in hand — Current" value={fmtMoney(cash.current, sym)} />
+          </div>
+          {rows.length === 0 ? <EmptyState title="No vendor data" description="No vendors or transactions in the selected period." /> :
         <div className="border rounded-lg bg-card overflow-x-auto">
           <Table>
             <TableHeader><TableRow>
@@ -125,6 +142,8 @@ function ReportPage() {
             </TableBody>
           </Table>
         </div>}
+        </>
+      )}
     </div>
   );
 }

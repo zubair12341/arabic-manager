@@ -410,6 +410,7 @@ export type Database = {
       }
     }
     Functions: {
+      clear_all_business_data: { Args: never; Returns: undefined }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
