@@ -344,6 +344,7 @@ export type Database = {
       }
       vendors: {
         Row: {
+          account_number: string | null
           address: string | null
           created_at: string
           created_by: string | null
@@ -357,6 +358,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          account_number?: string | null
           address?: string | null
           created_at?: string
           created_by?: string | null
@@ -370,6 +372,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          account_number?: string | null
           address?: string | null
           created_at?: string
           created_by?: string | null
