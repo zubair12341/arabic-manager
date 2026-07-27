@@ -47,7 +47,7 @@ function VendorsPage() {
 
   const save = useMutation({
     mutationFn: async (f: FormState) => {
-      const payload = { restaurant_id: f.restaurant_id, name: f.name.trim(), phone: f.phone || null, address: f.address || null, opening_balance: Number(f.opening_balance || 0), is_active: f.is_active };
+      const payload = { restaurant_id: f.restaurant_id, name: f.name.trim(), phone: f.phone || null, address: f.address || null, account_number: f.account_number || null, opening_balance: Number(f.opening_balance || 0), is_active: f.is_active };
       if (f.id) { const { error } = await supabase.from("vendors").update(payload).eq("id", f.id); if (error) throw error; }
       else { const { error } = await supabase.from("vendors").insert(payload); if (error) throw error; }
     },
