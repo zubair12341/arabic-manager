@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { settingsQuery } from "@/lib/settings";
-import { useSession } from "@/hooks/use-session";
+import { useSession, useIsAdmin } from "@/hooks/use-session";
 import { PageHeader, TableSkeleton, EmptyState } from "@/components/page-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
