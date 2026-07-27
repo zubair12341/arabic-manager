@@ -114,7 +114,7 @@ function VendorsPage() {
                   <TableCell>{v.is_active ? <Badge>Active</Badge> : <Badge variant="secondary">Inactive</Badge>}</TableCell>
                   <TableCell>
                     <div className="flex gap-1 justify-end">
-                      <Button size="icon" variant="ghost" onClick={() => setForm({ id: v.id, restaurant_id: v.restaurant_id, name: v.name, phone: v.phone || "", address: v.address || "", opening_balance: String(v.opening_balance), is_active: v.is_active })}><Pencil className="h-4 w-4" /></Button>
+                      <Button size="icon" variant="ghost" onClick={() => setForm({ id: v.id, restaurant_id: v.restaurant_id, name: v.name, phone: v.phone || "", address: v.address || "", account_number: v.account_number || "", opening_balance: String(v.opening_balance), is_active: v.is_active })}><Pencil className="h-4 w-4" /></Button>
                       <Button size="icon" variant="ghost" onClick={() => toggle.mutate(v)}><Power className="h-4 w-4" /></Button>
                       <Button size="icon" variant="ghost" onClick={() => setDelTarget(v)}><Trash2 className="h-4 w-4" /></Button>
                     </div>
