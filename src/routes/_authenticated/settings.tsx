@@ -43,10 +43,13 @@ function SettingsPage() {
 
 function AppSettingsPanel() {
   const qc = useQueryClient();
+  const { isAdmin } = useSession();
   const s = useQuery(settingsQuery());
   const [sym, setSym] = useState<string | null>(null);
   const [name, setName] = useState<string | null>(null);
   const [code, setCode] = useState<string | null>(null);
+  const [confirmClear, setConfirmClear] = useState(false);
+  const [confirmText, setConfirmText] = useState("");
   const saved = s.data ?? { currency_symbol: "$", business_name: "My Restaurant Group", currency_code: "USD" };
   const mut = useMutation({
     mutationFn: async () => {
@@ -62,12 +65,59 @@ function AppSettingsPanel() {
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["app_settings"] }); toast.success("Settings saved"); },
     onError: (e: Error) => toast.error(e.message),
   });
+  const clearAll = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.rpc("clear_all_business_data");
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries();
+      setConfirmClear(false); setConfirmText("");
+      toast.success("All business data cleared");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
   return (
-    <div className="max-w-md space-y-3">
-      <div><Label>Business name</Label><Input defaultValue={saved.business_name} onChange={(e) => setName(e.target.value)} /></div>
-      <div><Label>Currency symbol</Label><Input defaultValue={saved.currency_symbol} onChange={(e) => setSym(e.target.value)} maxLength={3} /></div>
-      <div><Label>Currency code</Label><Input defaultValue={saved.currency_code} onChange={(e) => setCode(e.target.value)} maxLength={5} /></div>
-      <Button onClick={() => mut.mutate()} disabled={mut.isPending}>{mut.isPending ? "Saving…" : "Save settings"}</Button>
+    <div className="max-w-md space-y-8">
+      <div className="space-y-3">
+        <div><Label>Business name</Label><Input defaultValue={saved.business_name} onChange={(e) => setName(e.target.value)} /></div>
+        <div><Label>Currency symbol</Label><Input defaultValue={saved.currency_symbol} onChange={(e) => setSym(e.target.value)} maxLength={3} /></div>
+        <div><Label>Currency code</Label><Input defaultValue={saved.currency_code} onChange={(e) => setCode(e.target.value)} maxLength={5} /></div>
+        <Button onClick={() => mut.mutate()} disabled={mut.isPending}>{mut.isPending ? "Saving…" : "Save settings"}</Button>
+      </div>
+
+      {isAdmin && (
+        <div className="border border-destructive/40 rounded-lg p-4 space-y-2">
+          <div className="font-semibold text-destructive">Danger zone</div>
+          <p className="text-sm text-muted-foreground">
+            Permanently delete all restaurants, vendors, vaults, purchases, payments, and audit log entries. Users and app settings are kept. This cannot be undone.
+          </p>
+          <Button variant="destructive" onClick={() => setConfirmClear(true)}>
+            <Trash2 className="h-4 w-4 mr-1" /> Clear all software data
+          </Button>
+        </div>
+      )}
+
+      <AlertDialog open={confirmClear} onOpenChange={(o) => { if (!o) { setConfirmClear(false); setConfirmText(""); } }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Clear all business data?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete every restaurant, vendor, vault, purchase, payment, and audit entry. Type <b>CLEAR</b> to confirm.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <Input value={confirmText} onChange={(e) => setConfirmText(e.target.value)} placeholder="Type CLEAR" />
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={confirmText !== "CLEAR" || clearAll.isPending}
+              onClick={(e) => { e.preventDefault(); clearAll.mutate(); }}
+            >
+              {clearAll.isPending ? "Clearing…" : "Yes, clear everything"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
