@@ -103,8 +103,13 @@ function ReportPage() {
       </div>
 
       {!restId ? <EmptyState title="Pick a restaurant" description="Choose a restaurant to run the report." /> :
-        report.isLoading ? <TableSkeleton /> :
-        rows.length === 0 ? <EmptyState title="No data" description="No vendors or transactions in the selected period." /> :
+        report.isLoading ? <TableSkeleton /> : (
+        <>
+          <div className="grid gap-2 md:grid-cols-2 mb-4">
+            <StatCard label="Cash in hand — Opening" value={fmtMoney(cash.opening, sym)} />
+            <StatCard label="Cash in hand — Current" value={fmtMoney(cash.current, sym)} />
+          </div>
+          {rows.length === 0 ? <EmptyState title="No vendor data" description="No vendors or transactions in the selected period." /> :
         <div className="border rounded-lg bg-card overflow-x-auto">
           <Table>
             <TableHeader><TableRow>
