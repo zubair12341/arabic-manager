@@ -28,6 +28,7 @@ type Row = {
 function ReportPage() {
   const restaurants = useQuery(restaurantsQuery());
   const settings = useQuery(settingsQuery());
+  const vaults = useQuery(vaultsQuery());
   const sym = settings.data?.currency_symbol ?? "$";
   const [restId, setRestId] = useState("");
   const [from, setFrom] = useState("");
@@ -56,15 +57,26 @@ function ReportPage() {
     combined: a.combined + Number(r.total),
   }), { opening: 0, purchased: 0, paid: 0, current: 0, combined: 0 });
 
-  const restName = restaurants.data?.find(r => r.id === restId)?.name ?? "";
+  const restaurant = restaurants.data?.find(r => r.id === restId);
+  const restName = restaurant?.name ?? "";
+
+  const cash = useMemo(() => {
+    const restVaults = (vaults.data ?? []).filter(v => v.restaurant_id === restId);
+    return {
+      opening: Number(restaurant?.opening_cash_balance ?? 0),
+      current: restVaults.reduce((s, v) => s + Number(v.current_balance), 0),
+    };
+  }, [vaults.data, restId, restaurant]);
 
   const exportPdf = () => {
     const doc = new jsPDF();
     doc.setFontSize(14); doc.text(`Vendor Report — ${restName}`, 14, 16);
     doc.setFontSize(9);
-    if (from || to) doc.text(`Period: ${from || "—"} to ${to || "—"}`, 14, 22);
+    let y = 22;
+    if (from || to) { doc.text(`Period: ${from || "—"} to ${to || "—"}`, 14, y); y += 5; }
+    doc.text(`Cash in hand — Opening: ${fmtMoney(cash.opening, sym)}   Current: ${fmtMoney(cash.current, sym)}`, 14, y);
     autoTable(doc, {
-      startY: 26,
+      startY: y + 4,
       head: [["Vendor", "Opening", "Purchased", "Paid", "Current", "Total"]],
       body: rows.map(r => [
         r.vendor_name, fmtMoney(r.opening_balance, sym), fmtMoney(r.total_purchased, sym),
