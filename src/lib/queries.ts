@@ -8,6 +8,7 @@ export type Restaurant = {
 };
 export type Vendor = {
   id: string; restaurant_id: string; name: string; phone: string | null; address: string | null;
+  account_number: string | null;
   opening_balance: number; current_balance: number; is_active: boolean;
   created_at: string; updated_at: string;
 };

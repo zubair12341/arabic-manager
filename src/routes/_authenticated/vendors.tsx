@@ -24,8 +24,8 @@ export const Route = createFileRoute("/_authenticated/vendors")({
   component: VendorsPage,
 });
 
-type FormState = { id?: string; restaurant_id: string; name: string; phone: string; address: string; opening_balance: string; is_active: boolean };
-const empty = (rid = ""): FormState => ({ restaurant_id: rid, name: "", phone: "", address: "", opening_balance: "0", is_active: true });
+type FormState = { id?: string; restaurant_id: string; name: string; phone: string; address: string; account_number: string; opening_balance: string; is_active: boolean };
+const empty = (rid = ""): FormState => ({ restaurant_id: rid, name: "", phone: "", address: "", account_number: "", opening_balance: "0", is_active: true });
 
 function VendorsPage() {
   const qc = useQueryClient();
@@ -47,7 +47,7 @@ function VendorsPage() {
 
   const save = useMutation({
     mutationFn: async (f: FormState) => {
-      const payload = { restaurant_id: f.restaurant_id, name: f.name.trim(), phone: f.phone || null, address: f.address || null, opening_balance: Number(f.opening_balance || 0), is_active: f.is_active };
+      const payload = { restaurant_id: f.restaurant_id, name: f.name.trim(), phone: f.phone || null, address: f.address || null, account_number: f.account_number || null, opening_balance: Number(f.opening_balance || 0), is_active: f.is_active };
       if (f.id) { const { error } = await supabase.from("vendors").update(payload).eq("id", f.id); if (error) throw error; }
       else { const { error } = await supabase.from("vendors").insert(payload); if (error) throw error; }
     },
@@ -114,7 +114,7 @@ function VendorsPage() {
                   <TableCell>{v.is_active ? <Badge>Active</Badge> : <Badge variant="secondary">Inactive</Badge>}</TableCell>
                   <TableCell>
                     <div className="flex gap-1 justify-end">
-                      <Button size="icon" variant="ghost" onClick={() => setForm({ id: v.id, restaurant_id: v.restaurant_id, name: v.name, phone: v.phone || "", address: v.address || "", opening_balance: String(v.opening_balance), is_active: v.is_active })}><Pencil className="h-4 w-4" /></Button>
+                      <Button size="icon" variant="ghost" onClick={() => setForm({ id: v.id, restaurant_id: v.restaurant_id, name: v.name, phone: v.phone || "", address: v.address || "", account_number: v.account_number || "", opening_balance: String(v.opening_balance), is_active: v.is_active })}><Pencil className="h-4 w-4" /></Button>
                       <Button size="icon" variant="ghost" onClick={() => toggle.mutate(v)}><Power className="h-4 w-4" /></Button>
                       <Button size="icon" variant="ghost" onClick={() => setDelTarget(v)}><Trash2 className="h-4 w-4" /></Button>
                     </div>
@@ -160,6 +160,7 @@ function VendorForm({ form, setForm, restaurants, onSave, saving }: any) {
           <div><Label>Phone</Label><Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></div>
           <div><Label>Opening balance</Label><Input type="number" step="0.01" value={form.opening_balance} onChange={(e) => setForm({ ...form, opening_balance: e.target.value })} disabled={!!form.id} /></div>
         </div>
+        <div><Label>Account number</Label><Input value={form.account_number} onChange={(e) => setForm({ ...form, account_number: e.target.value })} placeholder="Bank / IBAN / account #" /></div>
         <div><Label>Address</Label><Textarea rows={2} value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} /></div>
         <div className="flex items-center gap-2"><Switch checked={form.is_active} onCheckedChange={(v) => setForm({ ...form, is_active: v })} /><Label>Active</Label></div>
       </div>
