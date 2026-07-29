@@ -48,14 +48,20 @@ function ReportPage() {
     },
   });
 
-  const rows = report.data ?? [];
+  const rows = (report.data ?? []).map((r) => {
+    const old_balance = Number(r.opening_balance);
+    const current = Number(r.total_purchased);
+    const total = old_balance + current;
+    const paid = Number(r.total_paid);
+    return { ...r, old_balance, current, total_row: total, paid, remaining: total - paid };
+  });
   const totals = rows.reduce((a, r) => ({
-    opening: a.opening + Number(r.opening_balance),
-    purchased: a.purchased + Number(r.total_purchased),
-    paid: a.paid + Number(r.total_paid),
-    current: a.current + Number(r.current_balance),
-    combined: a.combined + Number(r.total),
-  }), { opening: 0, purchased: 0, paid: 0, current: 0, combined: 0 });
+    opening: a.opening + r.old_balance,
+    purchased: a.purchased + r.current,
+    combined: a.combined + r.total_row,
+    paid: a.paid + r.paid,
+    remaining: a.remaining + r.remaining,
+  }), { opening: 0, purchased: 0, combined: 0, paid: 0, remaining: 0 });
 
   const restaurant = restaurants.data?.find(r => r.id === restId);
   const restName = restaurant?.name ?? "";
