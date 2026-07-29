@@ -298,6 +298,60 @@ export type Database = {
         }
         Relationships: []
       }
+      vault_deposits: {
+        Row: {
+          amount: number
+          created_at: string
+          created_by: string | null
+          deposit_date: string
+          id: string
+          is_deleted: boolean
+          note: string | null
+          restaurant_id: string
+          updated_at: string
+          vault_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          created_by?: string | null
+          deposit_date?: string
+          id?: string
+          is_deleted?: boolean
+          note?: string | null
+          restaurant_id: string
+          updated_at?: string
+          vault_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          created_by?: string | null
+          deposit_date?: string
+          id?: string
+          is_deleted?: boolean
+          note?: string | null
+          restaurant_id?: string
+          updated_at?: string
+          vault_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vault_deposits_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vault_deposits_vault_id_fkey"
+            columns: ["vault_id"]
+            isOneToOne: false
+            referencedRelation: "vaults"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vaults: {
         Row: {
           created_at: string
