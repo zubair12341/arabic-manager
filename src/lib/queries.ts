@@ -29,6 +29,23 @@ export type Payment = {
   is_deleted: boolean; created_at: string;
 };
 
+export type VaultDeposit = {
+  id: string; restaurant_id: string; vault_id: string;
+  amount: number; note: string | null; deposit_date: string;
+  is_deleted: boolean; created_at: string;
+};
+
+export const vaultDepositsQuery = () =>
+  queryOptions({
+    queryKey: ["vault_deposits"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("vault_deposits").select("*")
+        .eq("is_deleted", false).order("deposit_date", { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as VaultDeposit[];
+    },
+  });
+
 export const restaurantsQuery = () =>
   queryOptions({
     queryKey: ["restaurants"],
