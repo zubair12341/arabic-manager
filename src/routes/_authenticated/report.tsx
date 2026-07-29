@@ -48,14 +48,20 @@ function ReportPage() {
     },
   });
 
-  const rows = report.data ?? [];
+  const rows = (report.data ?? []).map((r) => {
+    const old_balance = Number(r.opening_balance);
+    const current = Number(r.total_purchased);
+    const total = old_balance + current;
+    const paid = Number(r.total_paid);
+    return { ...r, old_balance, current, total_row: total, paid, remaining: total - paid };
+  });
   const totals = rows.reduce((a, r) => ({
-    opening: a.opening + Number(r.opening_balance),
-    purchased: a.purchased + Number(r.total_purchased),
-    paid: a.paid + Number(r.total_paid),
-    current: a.current + Number(r.current_balance),
-    combined: a.combined + Number(r.total),
-  }), { opening: 0, purchased: 0, paid: 0, current: 0, combined: 0 });
+    opening: a.opening + r.old_balance,
+    purchased: a.purchased + r.current,
+    combined: a.combined + r.total_row,
+    paid: a.paid + r.paid,
+    remaining: a.remaining + r.remaining,
+  }), { opening: 0, purchased: 0, combined: 0, paid: 0, remaining: 0 });
 
   const restaurant = restaurants.data?.find(r => r.id === restId);
   const restName = restaurant?.name ?? "";
@@ -68,6 +74,24 @@ function ReportPage() {
     };
   }, [vaults.data, restId, restaurant]);
 
+  const exportCashPdf = () => {
+    const doc = new jsPDF();
+    doc.setFontSize(14); doc.text(`Cash in Hand — ${restName}`, 14, 16);
+    doc.setFontSize(9);
+    let y = 22;
+    if (from || to) { doc.text(`Period: ${from || "—"} to ${to || "—"}`, 14, y); y += 5; }
+    autoTable(doc, {
+      startY: y + 4,
+      head: [["Description", "Amount"]],
+      body: [
+        ["Cash in hand — Opening", fmtMoney(cash.opening, sym)],
+        ["Cash in hand — Current", fmtMoney(cash.current, sym)],
+      ],
+      styles: { fontSize: 9 }, headStyles: { fillColor: [30, 41, 59] },
+    });
+    doc.save(`cash-in-hand-${restName}-${new Date().toISOString().slice(0, 10)}.pdf`);
+  };
+
   const exportPdf = () => {
     const doc = new jsPDF();
     doc.setFontSize(14); doc.text(`Vendor Report — ${restName}`, 14, 16);
@@ -77,12 +101,12 @@ function ReportPage() {
     doc.text(`Cash in hand — Opening: ${fmtMoney(cash.opening, sym)}   Current: ${fmtMoney(cash.current, sym)}`, 14, y);
     autoTable(doc, {
       startY: y + 4,
-      head: [["Vendor", "Opening", "Purchased", "Paid", "Current", "Total"]],
+      head: [["Vendor", "Old Balance", "Current Balance", "Total", "Paid", "Current Balance"]],
       body: rows.map(r => [
-        r.vendor_name, fmtMoney(r.opening_balance, sym), fmtMoney(r.total_purchased, sym),
-        fmtMoney(r.total_paid, sym), fmtMoney(r.current_balance, sym), fmtMoney(r.total, sym),
+        r.vendor_name, fmtMoney(r.old_balance, sym), fmtMoney(r.current, sym),
+        fmtMoney(r.total_row, sym), fmtMoney(r.paid, sym), fmtMoney(r.remaining, sym),
       ]),
-      foot: [["Totals", fmtMoney(totals.opening, sym), fmtMoney(totals.purchased, sym), fmtMoney(totals.paid, sym), fmtMoney(totals.current, sym), fmtMoney(totals.combined, sym)]],
+      foot: [["Totals", fmtMoney(totals.opening, sym), fmtMoney(totals.purchased, sym), fmtMoney(totals.combined, sym), fmtMoney(totals.paid, sym), fmtMoney(totals.remaining, sym)]],
       styles: { fontSize: 8 }, headStyles: { fillColor: [30, 41, 59] },
     });
     doc.save(`report-${restName}-${new Date().toISOString().slice(0, 10)}.pdf`);
@@ -91,7 +115,12 @@ function ReportPage() {
   return (
     <div>
       <PageHeader title="Restaurant Report" description="Vendor-wise balances and activity for a restaurant."
-        action={<Button onClick={exportPdf} disabled={rows.length === 0}><Download className="h-4 w-4 mr-1" /> Export PDF</Button>} />
+        action={
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={exportCashPdf} disabled={!restId}><Download className="h-4 w-4 mr-1" /> Cash in Hand PDF</Button>
+            <Button onClick={exportPdf} disabled={rows.length === 0}><Download className="h-4 w-4 mr-1" /> Export PDF</Button>
+          </div>
+        } />
 
       <div className="grid gap-2 md:grid-cols-4 mb-4">
         <Select value={restId} onValueChange={setRestId}>
@@ -114,30 +143,30 @@ function ReportPage() {
           <Table>
             <TableHeader><TableRow>
               <TableHead>Vendor</TableHead>
-              <TableHead className="text-right">Opening / Old</TableHead>
-              <TableHead className="text-right">Purchased (period)</TableHead>
-              <TableHead className="text-right">Paid</TableHead>
-              <TableHead className="text-right">Current</TableHead>
+              <TableHead className="text-right">Old Balance</TableHead>
+              <TableHead className="text-right">Current Balance</TableHead>
               <TableHead className="text-right">Total</TableHead>
+              <TableHead className="text-right">Paid</TableHead>
+              <TableHead className="text-right">Current Balance</TableHead>
             </TableRow></TableHeader>
             <TableBody>
               {rows.map(r => (
                 <TableRow key={r.vendor_id}>
                   <TableCell className="font-medium">{r.vendor_name}</TableCell>
-                  <TableCell className="text-right tabular-nums">{fmtMoney(r.opening_balance, sym)}</TableCell>
-                  <TableCell className="text-right tabular-nums">{fmtMoney(r.total_purchased, sym)}</TableCell>
-                  <TableCell className="text-right tabular-nums">{fmtMoney(r.total_paid, sym)}</TableCell>
-                  <TableCell className="text-right tabular-nums">{fmtMoney(r.current_balance, sym)}</TableCell>
-                  <TableCell className="text-right tabular-nums font-semibold">{fmtMoney(r.total, sym)}</TableCell>
+                  <TableCell className="text-right tabular-nums">{fmtMoney(r.old_balance, sym)}</TableCell>
+                  <TableCell className="text-right tabular-nums">{fmtMoney(r.current, sym)}</TableCell>
+                  <TableCell className="text-right tabular-nums font-semibold">{fmtMoney(r.total_row, sym)}</TableCell>
+                  <TableCell className="text-right tabular-nums">{fmtMoney(r.paid, sym)}</TableCell>
+                  <TableCell className="text-right tabular-nums font-semibold">{fmtMoney(r.remaining, sym)}</TableCell>
                 </TableRow>
               ))}
               <TableRow className="bg-muted/40 font-semibold">
                 <TableCell>Totals</TableCell>
                 <TableCell className="text-right tabular-nums">{fmtMoney(totals.opening, sym)}</TableCell>
                 <TableCell className="text-right tabular-nums">{fmtMoney(totals.purchased, sym)}</TableCell>
-                <TableCell className="text-right tabular-nums">{fmtMoney(totals.paid, sym)}</TableCell>
-                <TableCell className="text-right tabular-nums">{fmtMoney(totals.current, sym)}</TableCell>
                 <TableCell className="text-right tabular-nums">{fmtMoney(totals.combined, sym)}</TableCell>
+                <TableCell className="text-right tabular-nums">{fmtMoney(totals.paid, sym)}</TableCell>
+                <TableCell className="text-right tabular-nums">{fmtMoney(totals.remaining, sym)}</TableCell>
               </TableRow>
             </TableBody>
           </Table>
