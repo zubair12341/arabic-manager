@@ -16,7 +16,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { Plus, Pencil, Power, Trash2, BanknoteArrowUp } from "lucide-react";
+import { Plus, Pencil, Power, Trash2, BanknoteArrowUp, Download } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { fmtMoney, fmtDate } from "@/lib/format";
