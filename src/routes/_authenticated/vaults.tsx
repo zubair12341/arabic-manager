@@ -121,14 +121,46 @@ function VaultsPage() {
 
   const vaultTxns = useMemo(() => {
     if (!historyOf) return [];
-    const ps = (purchases.data ?? []).filter(p => p.vault_id === historyOf.id && Number(p.amount_paid_now) > 0)
-      .map(p => ({ id: p.id, date: p.purchase_date, kind: "Purchase (cash portion)", amount: -Number(p.amount_paid_now) }));
-    const pm = (payments.data ?? []).filter(p => p.vault_id === historyOf.id)
-      .map(p => ({ id: p.id, date: p.payment_date, kind: "Payment", amount: -Number(p.amount) }));
-    const dp = (deposits.data ?? []).filter(d => d.vault_id === historyOf.id)
-      .map(d => ({ id: d.id, date: d.deposit_date, kind: "Cash added", amount: Number(d.amount) }));
-    return [...ps, ...pm, ...dp].sort((a, b) => (a.date < b.date ? 1 : -1));
-  }, [historyOf, purchases.data, payments.data, deposits.data]);
+    const all = buildTxns({
+      purchases: purchases.data ?? [], payments: payments.data ?? [],
+      deposits: deposits.data ?? [], expenses: expenses.data ?? [], vendors: vendors.data ?? [],
+    }).filter(t => t.vault_id === historyOf.id);
+    let running = Number(historyOf.opening_balance);
+    return all.map(t => { running += t.inflow - t.outflow; return { ...t, running }; });
+  }, [historyOf, purchases.data, payments.data, deposits.data, expenses.data, vendors.data]);
+
+  const exportHistoryPdf = () => {
+    if (!historyOf) return;
+    const inflow = vaultTxns.reduce((s, t) => s + t.inflow, 0);
+    const outflow = vaultTxns.reduce((s, t) => s + t.outflow, 0);
+    const doc = newDoc();
+    let y = docHeader(doc, {
+      business: settings.data?.business_name,
+      title: `${historyOf.vault_user_name} — Cash in Hand History`,
+      meta: [
+        ["Restaurant", restName(historyOf.restaurant_id)],
+        ["Cash in hand user", historyOf.vault_user_name],
+        ["Opening balance", pdfMoney(historyOf.opening_balance)],
+        ["Generated", pdfDateTime(new Date())],
+      ],
+    });
+    y = pdfTable(doc, y,
+      ["Date", "Restaurant", "Cash user", "Paid to / Source", "Type", "In", "Out", "Balance"],
+      vaultTxns.map(t => [
+        pdfDate(t.date), restName(t.restaurant_id), historyOf.vault_user_name, t.party, t.kind,
+        t.inflow ? pdfMoney(t.inflow) : "—", t.outflow ? pdfMoney(t.outflow) : "—", pdfMoney(t.running),
+      ]),
+      [["", "", "", "", "TOTALS", pdfMoney(inflow), pdfMoney(outflow), pdfMoney(Number(historyOf.opening_balance) + inflow - outflow)]],
+      { align: { 5: "right", 6: "right", 7: "right" } });
+    summaryRows(doc, y, [
+      ["OPENING CASH IN HAND", pdfMoney(historyOf.opening_balance)],
+      ["CASH RECEIVED / ADDED", pdfMoney(inflow)],
+      ["TOTAL PAID + EXPENSES", pdfMoney(outflow)],
+      ["CLOSING CASH IN HAND", pdfMoney(Number(historyOf.opening_balance) + inflow - outflow), true],
+    ]);
+    savePdf(doc, `cash-in-hand-${historyOf.vault_user_name}`);
+  };
+
 
   return (
     <div>
