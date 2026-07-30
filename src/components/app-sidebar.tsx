@@ -1,6 +1,6 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
-  LayoutDashboard, Store, Users, ShoppingCart, HandCoins, BookOpen, Wallet, FileText, Settings, LogOut,
+  LayoutDashboard, Store, Users, ShoppingCart, HandCoins, BookOpen, Wallet, FileText, Settings, LogOut, Receipt,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
@@ -16,11 +16,13 @@ const items = [
   { title: "Vendors", url: "/vendors", icon: Users },
   { title: "Purchases", url: "/purchases", icon: ShoppingCart },
   { title: "Payments", url: "/payments", icon: HandCoins },
+  { title: "Expenses & Overheads", url: "/expenses", icon: Receipt },
   { title: "Vendor Ledger", url: "/vendor-ledger", icon: BookOpen },
   { title: "Vaults / Cash in Hand", url: "/vaults", icon: Wallet },
   { title: "Report", url: "/report", icon: FileText },
   { title: "Settings", url: "/settings", icon: Settings },
 ] as const;
+
 
 export function AppSidebar() {
   const pathname = useRouterState({ select: (r) => r.location.pathname });
