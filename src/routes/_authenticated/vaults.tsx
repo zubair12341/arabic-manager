@@ -46,6 +46,8 @@ function VaultsPage() {
   const purchases = useQuery(purchasesQuery());
   const payments = useQuery(paymentsQuery());
   const deposits = useQuery(vaultDepositsQuery());
+  const expenses = useQuery(expensesQuery());
+  const vendors = useQuery(vendorsQuery());
   const settings = useQuery(settingsQuery());
   const sym = settings.data?.currency_symbol ?? "$";
   const [restFilter, setRestFilter] = useState<string>("all");
