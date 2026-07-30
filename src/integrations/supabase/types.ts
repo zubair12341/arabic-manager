@@ -74,6 +74,63 @@ export type Database = {
         }
         Relationships: []
       }
+      expenses: {
+        Row: {
+          amount: number
+          created_at: string
+          created_by: string | null
+          expense_date: string
+          expense_type: string
+          id: string
+          is_deleted: boolean
+          note: string | null
+          restaurant_id: string
+          updated_at: string
+          vault_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          created_by?: string | null
+          expense_date?: string
+          expense_type: string
+          id?: string
+          is_deleted?: boolean
+          note?: string | null
+          restaurant_id: string
+          updated_at?: string
+          vault_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          created_by?: string | null
+          expense_date?: string
+          expense_type?: string
+          id?: string
+          is_deleted?: boolean
+          note?: string | null
+          restaurant_id?: string
+          updated_at?: string
+          vault_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expenses_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_vault_id_fkey"
+            columns: ["vault_id"]
+            isOneToOne: false
+            referencedRelation: "vaults"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payments: {
         Row: {
           amount: number

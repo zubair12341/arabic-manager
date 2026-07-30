@@ -1,6 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { restaurantsQuery, vaultsQuery, purchasesQuery, paymentsQuery, vaultDepositsQuery, type Vault, type VaultDeposit } from "@/lib/queries";
+import { restaurantsQuery, vaultsQuery, purchasesQuery, paymentsQuery, vaultDepositsQuery, expensesQuery, vendorsQuery, type Vault, type VaultDeposit } from "@/lib/queries";
+import { buildTxns } from "@/lib/report-data";
+import { newDoc, docHeader, table as pdfTable, summaryRows, save as savePdf, pdfMoney, pdfDate, pdfDateTime } from "@/lib/pdf";
 import { settingsQuery } from "@/lib/settings";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader, TableSkeleton, EmptyState, StatCard } from "@/components/page-shell";
@@ -14,7 +16,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { Plus, Pencil, Power, Trash2, BanknoteArrowUp } from "lucide-react";
+import { Plus, Pencil, Power, Trash2, BanknoteArrowUp, Download } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { fmtMoney, fmtDate } from "@/lib/format";
@@ -44,6 +46,8 @@ function VaultsPage() {
   const purchases = useQuery(purchasesQuery());
   const payments = useQuery(paymentsQuery());
   const deposits = useQuery(vaultDepositsQuery());
+  const expenses = useQuery(expensesQuery());
+  const vendors = useQuery(vendorsQuery());
   const settings = useQuery(settingsQuery());
   const sym = settings.data?.currency_symbol ?? "$";
   const [restFilter, setRestFilter] = useState<string>("all");
@@ -119,14 +123,46 @@ function VaultsPage() {
 
   const vaultTxns = useMemo(() => {
     if (!historyOf) return [];
-    const ps = (purchases.data ?? []).filter(p => p.vault_id === historyOf.id && Number(p.amount_paid_now) > 0)
-      .map(p => ({ id: p.id, date: p.purchase_date, kind: "Purchase (cash portion)", amount: -Number(p.amount_paid_now) }));
-    const pm = (payments.data ?? []).filter(p => p.vault_id === historyOf.id)
-      .map(p => ({ id: p.id, date: p.payment_date, kind: "Payment", amount: -Number(p.amount) }));
-    const dp = (deposits.data ?? []).filter(d => d.vault_id === historyOf.id)
-      .map(d => ({ id: d.id, date: d.deposit_date, kind: "Cash added", amount: Number(d.amount) }));
-    return [...ps, ...pm, ...dp].sort((a, b) => (a.date < b.date ? 1 : -1));
-  }, [historyOf, purchases.data, payments.data, deposits.data]);
+    const all = buildTxns({
+      purchases: purchases.data ?? [], payments: payments.data ?? [],
+      deposits: deposits.data ?? [], expenses: expenses.data ?? [], vendors: vendors.data ?? [],
+    }).filter(t => t.vault_id === historyOf.id);
+    let running = Number(historyOf.opening_balance);
+    return all.map(t => { running += t.inflow - t.outflow; return { ...t, running }; });
+  }, [historyOf, purchases.data, payments.data, deposits.data, expenses.data, vendors.data]);
+
+  const exportHistoryPdf = () => {
+    if (!historyOf) return;
+    const inflow = vaultTxns.reduce((s, t) => s + t.inflow, 0);
+    const outflow = vaultTxns.reduce((s, t) => s + t.outflow, 0);
+    const doc = newDoc();
+    let y = docHeader(doc, {
+      business: settings.data?.business_name,
+      title: `${historyOf.vault_user_name} — Cash in Hand History`,
+      meta: [
+        ["Restaurant", restName(historyOf.restaurant_id)],
+        ["Cash in hand user", historyOf.vault_user_name],
+        ["Opening balance", pdfMoney(historyOf.opening_balance)],
+        ["Generated", pdfDateTime(new Date())],
+      ],
+    });
+    y = pdfTable(doc, y,
+      ["Date", "Restaurant", "Cash user", "Paid to / Source", "Type", "In", "Out", "Balance"],
+      vaultTxns.map(t => [
+        pdfDate(t.date), restName(t.restaurant_id), historyOf.vault_user_name, t.party, t.kind,
+        t.inflow ? pdfMoney(t.inflow) : "—", t.outflow ? pdfMoney(t.outflow) : "—", pdfMoney(t.running),
+      ]),
+      [["", "", "", "", "TOTALS", pdfMoney(inflow), pdfMoney(outflow), pdfMoney(Number(historyOf.opening_balance) + inflow - outflow)]],
+      { align: { 5: "right", 6: "right", 7: "right" } });
+    summaryRows(doc, y, [
+      ["OPENING CASH IN HAND", pdfMoney(historyOf.opening_balance)],
+      ["CASH RECEIVED / ADDED", pdfMoney(inflow)],
+      ["TOTAL PAID + EXPENSES", pdfMoney(outflow)],
+      ["CLOSING CASH IN HAND", pdfMoney(Number(historyOf.opening_balance) + inflow - outflow), true],
+    ]);
+    savePdf(doc, `cash-in-hand-${historyOf.vault_user_name}`);
+  };
+
 
   return (
     <div>
@@ -282,17 +318,32 @@ function VaultsPage() {
       </Dialog>
 
       <Dialog open={historyOf !== null} onOpenChange={(o) => !o && setHistoryOf(null)}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader><DialogTitle>{historyOf?.vault_user_name} — transaction history</DialogTitle></DialogHeader>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader><DialogTitle>{historyOf?.vault_user_name} — cash in hand history</DialogTitle></DialogHeader>
+          <div className="flex justify-between items-center gap-2 flex-wrap">
+            <div className="text-sm text-muted-foreground">
+              Opening {fmtMoney(historyOf?.opening_balance ?? 0, sym)} · Current {fmtMoney(historyOf?.current_balance ?? 0, sym)}
+            </div>
+            <Button size="sm" onClick={exportHistoryPdf} disabled={vaultTxns.length === 0}><Download className="h-4 w-4 mr-1" /> Download PDF</Button>
+          </div>
           <div className="max-h-[60vh] overflow-auto border rounded-md">
             <Table>
-              <TableHeader><TableRow><TableHead>Date</TableHead><TableHead>Type</TableHead><TableHead className="text-right">Amount</TableHead></TableRow></TableHeader>
+              <TableHeader><TableRow>
+                <TableHead>Date</TableHead><TableHead>Restaurant</TableHead><TableHead>Paid to / Source</TableHead>
+                <TableHead>Type</TableHead><TableHead className="text-right">In</TableHead>
+                <TableHead className="text-right">Out</TableHead><TableHead className="text-right">Balance</TableHead>
+              </TableRow></TableHeader>
               <TableBody>
-                {vaultTxns.length === 0 ? <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground text-sm py-4">No transactions</TableCell></TableRow> :
+                {vaultTxns.length === 0 ? <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground text-sm py-4">No transactions</TableCell></TableRow> :
                   vaultTxns.map(t => (
                     <TableRow key={t.kind + t.id}>
-                      <TableCell>{fmtDate(t.date)}</TableCell><TableCell>{t.kind}</TableCell>
-                      <TableCell className="text-right tabular-nums">{t.amount >= 0 ? "+" : "−"}{fmtMoney(Math.abs(t.amount), sym)}</TableCell>
+                      <TableCell>{fmtDate(t.date)}</TableCell>
+                      <TableCell>{restName(t.restaurant_id)}</TableCell>
+                      <TableCell className="font-medium">{t.party}</TableCell>
+                      <TableCell>{t.kind}</TableCell>
+                      <TableCell className="text-right tabular-nums">{t.inflow ? fmtMoney(t.inflow, sym) : "—"}</TableCell>
+                      <TableCell className="text-right tabular-nums">{t.outflow ? fmtMoney(t.outflow, sym) : "—"}</TableCell>
+                      <TableCell className="text-right tabular-nums font-medium">{fmtMoney(t.running, sym)}</TableCell>
                     </TableRow>
                   ))}
               </TableBody>
@@ -300,6 +351,7 @@ function VaultsPage() {
           </div>
         </DialogContent>
       </Dialog>
+
     </div>
   );
 }
