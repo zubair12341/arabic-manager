@@ -1,6 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { restaurantsQuery, vaultsQuery, purchasesQuery, paymentsQuery, vaultDepositsQuery, type Vault, type VaultDeposit } from "@/lib/queries";
+import { restaurantsQuery, vaultsQuery, purchasesQuery, paymentsQuery, vaultDepositsQuery, expensesQuery, vendorsQuery, type Vault, type VaultDeposit } from "@/lib/queries";
+import { buildTxns } from "@/lib/report-data";
+import { newDoc, docHeader, table as pdfTable, summaryRows, save as savePdf, pdfMoney, pdfDate, pdfDateTime } from "@/lib/pdf";
 import { settingsQuery } from "@/lib/settings";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader, TableSkeleton, EmptyState, StatCard } from "@/components/page-shell";
