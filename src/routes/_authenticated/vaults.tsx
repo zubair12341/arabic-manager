@@ -318,17 +318,32 @@ function VaultsPage() {
       </Dialog>
 
       <Dialog open={historyOf !== null} onOpenChange={(o) => !o && setHistoryOf(null)}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader><DialogTitle>{historyOf?.vault_user_name} — transaction history</DialogTitle></DialogHeader>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader><DialogTitle>{historyOf?.vault_user_name} — cash in hand history</DialogTitle></DialogHeader>
+          <div className="flex justify-between items-center gap-2 flex-wrap">
+            <div className="text-sm text-muted-foreground">
+              Opening {fmtMoney(historyOf?.opening_balance ?? 0, sym)} · Current {fmtMoney(historyOf?.current_balance ?? 0, sym)}
+            </div>
+            <Button size="sm" onClick={exportHistoryPdf} disabled={vaultTxns.length === 0}><Download className="h-4 w-4 mr-1" /> Download PDF</Button>
+          </div>
           <div className="max-h-[60vh] overflow-auto border rounded-md">
             <Table>
-              <TableHeader><TableRow><TableHead>Date</TableHead><TableHead>Type</TableHead><TableHead className="text-right">Amount</TableHead></TableRow></TableHeader>
+              <TableHeader><TableRow>
+                <TableHead>Date</TableHead><TableHead>Restaurant</TableHead><TableHead>Paid to / Source</TableHead>
+                <TableHead>Type</TableHead><TableHead className="text-right">In</TableHead>
+                <TableHead className="text-right">Out</TableHead><TableHead className="text-right">Balance</TableHead>
+              </TableRow></TableHeader>
               <TableBody>
-                {vaultTxns.length === 0 ? <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground text-sm py-4">No transactions</TableCell></TableRow> :
+                {vaultTxns.length === 0 ? <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground text-sm py-4">No transactions</TableCell></TableRow> :
                   vaultTxns.map(t => (
                     <TableRow key={t.kind + t.id}>
-                      <TableCell>{fmtDate(t.date)}</TableCell><TableCell>{t.kind}</TableCell>
-                      <TableCell className="text-right tabular-nums">{t.amount >= 0 ? "+" : "−"}{fmtMoney(Math.abs(t.amount), sym)}</TableCell>
+                      <TableCell>{fmtDate(t.date)}</TableCell>
+                      <TableCell>{restName(t.restaurant_id)}</TableCell>
+                      <TableCell className="font-medium">{t.party}</TableCell>
+                      <TableCell>{t.kind}</TableCell>
+                      <TableCell className="text-right tabular-nums">{t.inflow ? fmtMoney(t.inflow, sym) : "—"}</TableCell>
+                      <TableCell className="text-right tabular-nums">{t.outflow ? fmtMoney(t.outflow, sym) : "—"}</TableCell>
+                      <TableCell className="text-right tabular-nums font-medium">{fmtMoney(t.running, sym)}</TableCell>
                     </TableRow>
                   ))}
               </TableBody>
@@ -336,6 +351,7 @@ function VaultsPage() {
           </div>
         </DialogContent>
       </Dialog>
+
     </div>
   );
 }
