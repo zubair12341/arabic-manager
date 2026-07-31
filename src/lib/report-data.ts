@@ -130,7 +130,7 @@ export function vendorReport(args: {
     (!from || d >= from) && (!to || d < to);
 
   return args.vendors
-    .filter(v => v.restaurant_id === args.restaurantId)
+    .filter(v => v.restaurant_id === args.restaurantId && v.is_active)
     .map(v => {
       const purchases = args.purchases.filter(p => p.vendor_id === v.id);
       const payments = args.payments.filter(p => p.vendor_id === v.id);
