@@ -360,11 +360,15 @@ function ReportPage() {
               <div className="text-sm text-muted-foreground">Detailed cash movement with running balance.</div>
               <Button onClick={exportCashInHand}><Download className="h-4 w-4 mr-1" /> Download Cash in Hand PDF</Button>
             </div>
-            <div className="grid gap-2 md:grid-cols-3 mb-4">
+            <div className="grid gap-2 md:grid-cols-3 lg:grid-cols-6 mb-4">
               <StatCard label="Opening" value={fmtMoney(overall.opening, sym)} />
               <StatCard label="Received" value={fmtMoney(overall.received, sym)} />
-              <StatCard label="Closing" value={fmtMoney(overall.closing, sym)} />
+              <StatCard label="Paid to vendors" value={fmtMoney(overall.paidVendors, sym)} />
+              <StatCard label="Expenses" value={fmtMoney(overall.expenses, sym)} />
+              <StatCard label="Cash in hand left" value={fmtMoney(overall.closing, sym)} />
+              <StatCard label="Total remaining payable" value={fmtMoney(vTotals.rem, sym)} />
             </div>
+
             {cashRows.length === 0 ? <EmptyState title="No transactions" description="No cash movement in this period." /> : (
               <div className="border rounded-lg bg-card overflow-x-auto">
                 <Table>
