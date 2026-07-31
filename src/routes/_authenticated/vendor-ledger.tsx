@@ -115,7 +115,7 @@ function LedgerPage() {
         </Select>
         <Select value={vendorId} onValueChange={setVendorId} disabled={!restId}>
           <SelectTrigger><SelectValue placeholder="Vendor" /></SelectTrigger>
-          <SelectContent>{(vendors.data ?? []).map(v => <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>)}</SelectContent>
+          <SelectContent>{(vendors.data ?? []).filter(v => v.is_active).map(v => <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>)}</SelectContent>
         </Select>
         <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} placeholder="From" />
         <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} placeholder="To" />
