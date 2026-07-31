@@ -167,8 +167,28 @@ function ReportPage() {
     });
     y = summaryRows(doc, y, [
       ["OPENING CASH IN HAND", pdfMoney(overall.opening)],
+      ["CASH RECEIVED / ADDED (PERIOD)", pdfMoney(overall.received)],
+      ["PAID TO VENDORS (PERIOD)", pdfMoney(overall.paidVendors)],
+      ["EXPENSES & OVERHEADS (PERIOD)", pdfMoney(overall.expenses)],
       ["CURRENT / CLOSING CASH IN HAND", pdfMoney(overall.closing), true],
     ]);
+
+    if (overall.receivedRows.length) {
+      y = sectionTitle(doc, y, "Cash received / added");
+      y = table(doc, y,
+        ["Date", "Cash user", "Note", "Amount"],
+        overall.receivedRows.map(t => [pdfDate(t.date), vaultName(t.vault_id), t.detail || "—", pdfMoney(t.inflow)]),
+        [["", "", "TOTAL RECEIVED", pdfMoney(overall.received)]],
+        { align: { 3: "right" } });
+    }
+
+    y = sectionTitle(doc, y, "Paid to vendors");
+    y = table(doc, y,
+      ["Date", "Paid to (vendor)", "Type", "Cash user", "Amount"],
+      overall.vendorRows.map(t => [pdfDate(t.date), t.party, t.kind, vaultName(t.vault_id), pdfMoney(t.outflow)]),
+      [["", "", "", "TOTAL PAID TO VENDORS", pdfMoney(overall.paidVendors)]],
+      { align: { 4: "right" } });
+
     y = sectionTitle(doc, y, "Detailed transactions");
     y = table(doc, y,
       ["Date", "Restaurant", "Cash user", "Paid to / Source", "Type", "In", "Out", "Balance"],
@@ -178,7 +198,16 @@ function ReportPage() {
       ]),
       [["", "", "", "", "TOTALS", pdfMoney(overall.received), pdfMoney(overall.paidVendors + overall.expenses), pdfMoney(overall.closing)]],
       { align: { 5: "right", 6: "right", 7: "right" } });
+
+    summaryRows(doc, y, [
+      ["TOTAL RECEIVED", pdfMoney(overall.received)],
+      ["TOTAL PAID TO VENDORS", pdfMoney(overall.paidVendors)],
+      ["TOTAL PAID + EXPENSES", pdfMoney(overall.paidVendors + overall.expenses)],
+      ["CASH IN HAND LEFT", pdfMoney(overall.closing), true],
+      ["TOTAL REMAINING PAYABLE", pdfMoney(vTotals.rem), true],
+    ]);
     save(doc, `cash-in-hand-${restName}`);
+
   };
 
   const exportVendor = () => {
