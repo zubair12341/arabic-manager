@@ -182,8 +182,14 @@ function ReportPage() {
       overall.vendorRows.map(t => [pdfDate(t.date), t.party, t.kind, vaultName(t.vault_id), pdfMoney(t.outflow)]),
       [["", "", "", "TOTAL PAID TO VENDORS", pdfMoney(overall.paidVendors)]],
       { align: { 4: "right" } });
+
+    // Summary block immediately after the Paid to vendors section.
     y = summaryRows(doc, y, [
-      ["TOTAL PAID TO VENDORS", pdfMoney(overall.paidVendors), true],
+      ["TOTAL RECEIVED", pdfMoney(overall.received)],
+      ["TOTAL PAID TO VENDORS", pdfMoney(overall.paidVendors)],
+      ["TOTAL PAID + EXPENSES", pdfMoney(overall.paidVendors + overall.expenses)],
+      ["CASH IN HAND LEFT", pdfMoney(overall.closing), true],
+      ["TOTAL REMAINING PAYABLE", pdfMoney(vTotals.rem), true],
     ]);
 
     if (overall.expenseRows.length) {
@@ -196,13 +202,6 @@ function ReportPage() {
         [["", "", "TOTAL EXPENSES", pdfMoney(overall.expenses)]],
         { align: { 3: "right" } });
     }
-
-    doc.addPage();
-    y = 20;
-    summaryRows(doc, y, [
-      ["CASH IN HAND LEFT", pdfMoney(overall.closing), true],
-      ["TOTAL REMAINING PAYABLE", pdfMoney(vTotals.rem), true],
-    ]);
 
     save(doc, `cash-in-hand-${restName}`);
   };
