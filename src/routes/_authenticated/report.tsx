@@ -189,23 +189,18 @@ function ReportPage() {
       [["", "", "", "TOTAL PAID TO VENDORS", pdfMoney(overall.paidVendors)]],
       { align: { 4: "right" } });
 
-    y = sectionTitle(doc, y, "Detailed transactions");
+    y = sectionTitle(doc, y, "Expenses & overheads");
     y = table(doc, y,
-      ["Date", "Restaurant", "Cash user", "Paid to / Source", "Type", "In", "Out", "Balance"],
-      cashRows.map(t => [
-        pdfDate(t.date), restName, vaultName(t.vault_id), t.party, t.kind,
-        t.inflow ? pdfMoney(t.inflow) : "—", t.outflow ? pdfMoney(t.outflow) : "—", pdfMoney(t.running),
-      ]),
-      [["", "", "", "", "TOTALS", pdfMoney(overall.received), pdfMoney(overall.paidVendors + overall.expenses), pdfMoney(overall.closing)]],
-      { align: { 5: "right", 6: "right", 7: "right" } });
+      ["Date", "Expense type", "Cash user", "Amount"],
+      overall.expenseRows.map(t => [pdfDate(t.date), t.party, vaultName(t.vault_id), pdfMoney(t.outflow)]),
+      [["", "", "TOTAL EXPENSES", pdfMoney(overall.expenses)]],
+      { align: { 3: "right" } });
 
     summaryRows(doc, y, [
-      ["TOTAL RECEIVED", pdfMoney(overall.received)],
-      ["TOTAL PAID TO VENDORS", pdfMoney(overall.paidVendors)],
-      ["TOTAL PAID + EXPENSES", pdfMoney(overall.paidVendors + overall.expenses)],
       ["CASH IN HAND LEFT", pdfMoney(overall.closing), true],
       ["TOTAL REMAINING PAYABLE", pdfMoney(vTotals.rem), true],
     ]);
+
     save(doc, `cash-in-hand-${restName}`);
 
   };
