@@ -173,36 +173,38 @@ function ReportPage() {
       ["CURRENT / CLOSING CASH IN HAND", pdfMoney(overall.closing), true],
     ]);
 
-    if (overall.receivedRows.length) {
-      y = sectionTitle(doc, y, "Cash received / added");
-      y = table(doc, y,
-        ["Date", "Cash user", "Note", "Amount"],
-        overall.receivedRows.map(t => [pdfDate(t.date), vaultName(t.vault_id), t.detail || "—", pdfMoney(t.inflow)]),
-        [["", "", "TOTAL RECEIVED", pdfMoney(overall.received)]],
-        { align: { 3: "right" } });
-    }
-
+    // Paid to vendors section on its own page so the total appears at the section end.
+    doc.addPage();
+    y = 20;
     y = sectionTitle(doc, y, "Paid to vendors");
     y = table(doc, y,
       ["Date", "Paid to (vendor)", "Type", "Cash user", "Amount"],
       overall.vendorRows.map(t => [pdfDate(t.date), t.party, t.kind, vaultName(t.vault_id), pdfMoney(t.outflow)]),
       [["", "", "", "TOTAL PAID TO VENDORS", pdfMoney(overall.paidVendors)]],
       { align: { 4: "right" } });
+    y = summaryRows(doc, y, [
+      ["TOTAL PAID TO VENDORS", pdfMoney(overall.paidVendors), true],
+    ]);
 
-    y = sectionTitle(doc, y, "Expenses & overheads");
-    y = table(doc, y,
-      ["Date", "Expense type", "Cash user", "Amount"],
-      overall.expenseRows.map(t => [pdfDate(t.date), t.party, vaultName(t.vault_id), pdfMoney(t.outflow)]),
-      [["", "", "TOTAL EXPENSES", pdfMoney(overall.expenses)]],
-      { align: { 3: "right" } });
+    if (overall.expenseRows.length) {
+      doc.addPage();
+      y = 20;
+      y = sectionTitle(doc, y, "Expenses & overheads");
+      y = table(doc, y,
+        ["Date", "Expense type", "Cash user", "Amount"],
+        overall.expenseRows.map(t => [pdfDate(t.date), t.party, vaultName(t.vault_id), pdfMoney(t.outflow)]),
+        [["", "", "TOTAL EXPENSES", pdfMoney(overall.expenses)]],
+        { align: { 3: "right" } });
+    }
 
+    doc.addPage();
+    y = 20;
     summaryRows(doc, y, [
       ["CASH IN HAND LEFT", pdfMoney(overall.closing), true],
       ["TOTAL REMAINING PAYABLE", pdfMoney(vTotals.rem), true],
     ]);
 
     save(doc, `cash-in-hand-${restName}`);
-
   };
 
   const exportVendor = () => {
