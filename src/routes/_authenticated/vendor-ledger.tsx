@@ -71,19 +71,29 @@ function LedgerPage() {
           debit: 0, credit: Number(p.amount),
         });
       }
-      rows.sort((a, b) => a.entry_date.localeCompare(b.entry_date));
+      const rank = (t: Entry["entry_type"]) => (t === "opening" ? 0 : t === "purchase" ? 1 : 2);
+      rows.sort((a, b) => {
+        if (a.entry_type === "opening") return -1;
+        if (b.entry_type === "opening") return 1;
+        return a.entry_date.localeCompare(b.entry_date) || rank(a.entry_type) - rank(b.entry_type);
+      });
       return rows;
     },
   });
 
   const filtered = useMemo(() => (entriesQ.data ?? []).filter(e =>
-    (!from || e.entry_date >= from) &&
-    (!to || e.entry_date <= new Date(new Date(to).getTime() + 86400000).toISOString())
+    e.entry_type === "opening" ||
+    ((!from || e.entry_date >= from) &&
+      (!to || e.entry_date <= new Date(new Date(to).getTime() + 86400000).toISOString()))
   ), [entriesQ.data, from, to]);
 
   const totals = useMemo(() => {
     let running = 0, debit = 0, credit = 0;
-    const withRunning = filtered.map(e => { running += e.debit - e.credit; debit += e.debit; credit += e.credit; return { ...e, running }; });
+    const withRunning = filtered.map(e => {
+      running += e.debit - e.credit;
+      if (e.entry_type !== "opening") { debit += e.debit; credit += e.credit; }
+      return { ...e, running };
+    });
     return { rows: withRunning, debit, credit, closing: running };
   }, [filtered]);
 
