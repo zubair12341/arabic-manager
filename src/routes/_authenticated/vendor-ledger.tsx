@@ -151,9 +151,13 @@ function LedgerPage() {
             </TableRow></TableHeader>
             <TableBody>
               {totals.rows.map((r, i) => (
-                <TableRow key={i}>
+                <TableRow key={i} className={r.entry_type === "opening" ? "bg-primary/10 font-semibold" : undefined}>
                   <TableCell>{fmtDate(r.entry_date)}</TableCell>
-                  <TableCell className="capitalize">{r.entry_type}</TableCell>
+                  <TableCell className="capitalize">
+                    {r.entry_type === "opening"
+                      ? <span className="inline-flex items-center rounded-full bg-primary/15 text-primary px-2 py-0.5 text-xs font-medium">Opening balance</span>
+                      : r.entry_type}
+                  </TableCell>
                   <TableCell>{r.description}</TableCell>
                   <TableCell className="text-right tabular-nums">{r.debit ? fmtMoney(r.debit, sym) : "—"}</TableCell>
                   <TableCell className="text-right tabular-nums">{r.credit ? fmtMoney(r.credit, sym) : "—"}</TableCell>
