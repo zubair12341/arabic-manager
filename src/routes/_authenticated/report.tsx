@@ -241,7 +241,7 @@ function ReportPage() {
     summaryRows(doc, y, [
       ["CASH IN HAND — OPENING", pdfMoney(overall.opening)],
       ["CASH IN HAND — CURRENT", pdfMoney(overall.closing)],
-      ["TOTAL REMAINING PAYABLE", pdfMoney(vTotals.rem), true],
+      ["TOTAL REMAINING PAYABLE", pdfMoney(actualPayable), true],
     ]);
     save(doc, `vendor-report-${restName}`);
   };
