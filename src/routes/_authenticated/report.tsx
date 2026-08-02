@@ -376,6 +376,8 @@ function ReportPage() {
             <div className="grid gap-2 md:grid-cols-3 lg:grid-cols-6 mb-4">
               <StatCard label="Opening" value={fmtMoney(overall.opening, sym)} />
               <StatCard label="Received" value={fmtMoney(overall.received, sym)} />
+              <StatCard label="Total after receiving" value={fmtMoney(overall.opening + overall.received, sym)} />
+
               <StatCard label="Paid to vendors" value={fmtMoney(overall.paidVendors, sym)} />
               <StatCard label="Expenses" value={fmtMoney(overall.expenses, sym)} />
               <StatCard label="Cash in hand left" value={fmtMoney(overall.closing, sym)} />
