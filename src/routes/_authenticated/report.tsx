@@ -191,13 +191,21 @@ function ReportPage() {
       [["", "", "", "TOTAL PAID TO VENDORS", pdfMoney(overall.paidVendors)]],
       { align: { 4: "right" } });
 
+    // Actual outstanding balance per vendor (live, not period-scoped).
+    y = sectionTitle(doc, y, "Vendor remaining balances (actual)");
+    y = table(doc, y,
+      ["Vendor", "Remaining balance"],
+      payableRows.map(v => [v.name, pdfMoney(v.remaining)]),
+      [["TOTAL REMAINING PAYABLE", pdfMoney(actualPayable)]],
+      { align: { 1: "right" } });
+
     // Summary block immediately after the Paid to vendors section.
     y = summaryRows(doc, y, [
       ["TOTAL RECEIVED", pdfMoney(overall.received)],
       ["TOTAL PAID TO VENDORS", pdfMoney(overall.paidVendors)],
       ["TOTAL PAID + EXPENSES", pdfMoney(overall.paidVendors + overall.expenses)],
       ["CASH IN HAND LEFT", pdfMoney(overall.closing), true],
-      ["TOTAL REMAINING PAYABLE", pdfMoney(vTotals.rem), true],
+      ["TOTAL REMAINING PAYABLE", pdfMoney(actualPayable), true],
     ]);
 
     if (overall.expenseRows.length) {
