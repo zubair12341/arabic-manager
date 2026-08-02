@@ -176,14 +176,12 @@ function ReportPage() {
     y = summaryRows(doc, y, [
       ["OPENING CASH IN HAND", pdfMoney(overall.opening)],
       ["CASH RECEIVED / ADDED (PERIOD)", pdfMoney(overall.received)],
+      ["TOTAL CASH IN HAND AFTER RECEIVING", pdfMoney(overall.opening + overall.received)],
       ["PAID TO VENDORS (PERIOD)", pdfMoney(overall.paidVendors)],
       ["EXPENSES & OVERHEADS (PERIOD)", pdfMoney(overall.expenses)],
       ["CURRENT / CLOSING CASH IN HAND", pdfMoney(overall.closing), true],
     ]);
 
-    // Paid to vendors section on its own page so the total appears at the section end.
-    doc.addPage();
-    y = 20;
     y = sectionTitle(doc, y, "Paid to vendors");
     y = table(doc, y,
       ["Date", "Paid to (vendor)", "Type", "Cash user", "Amount"],
@@ -192,12 +190,16 @@ function ReportPage() {
       { align: { 4: "right" } });
 
     // Actual outstanding balance per vendor (live, not period-scoped).
+    const prevOf = (id: string, remaining: number) => {
+      const r = vendorRows.find(v => v.vendor_id === id);
+      return r ? r.old_balance : remaining;
+    };
     y = sectionTitle(doc, y, "Vendor remaining balances (actual)");
     y = table(doc, y,
-      ["Vendor", "Remaining balance"],
-      payableRows.map(v => [v.name, pdfMoney(v.remaining)]),
-      [["TOTAL REMAINING PAYABLE", pdfMoney(actualPayable)]],
-      { align: { 1: "right" } });
+      ["Vendor", "Previous balance", "Remaining balance"],
+      payableRows.map(v => [v.name, pdfMoney(prevOf(v.id, v.remaining)), pdfMoney(v.remaining)]),
+      [["TOTAL", pdfMoney(payableRows.reduce((s, v) => s + prevOf(v.id, v.remaining), 0)), pdfMoney(actualPayable)]],
+      { align: { 1: "right", 2: "right" } });
 
     // Summary block immediately after the Paid to vendors section.
     y = summaryRows(doc, y, [
