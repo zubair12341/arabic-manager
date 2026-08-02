@@ -176,14 +176,12 @@ function ReportPage() {
     y = summaryRows(doc, y, [
       ["OPENING CASH IN HAND", pdfMoney(overall.opening)],
       ["CASH RECEIVED / ADDED (PERIOD)", pdfMoney(overall.received)],
+      ["TOTAL CASH IN HAND AFTER RECEIVING", pdfMoney(overall.opening + overall.received)],
       ["PAID TO VENDORS (PERIOD)", pdfMoney(overall.paidVendors)],
       ["EXPENSES & OVERHEADS (PERIOD)", pdfMoney(overall.expenses)],
       ["CURRENT / CLOSING CASH IN HAND", pdfMoney(overall.closing), true],
     ]);
 
-    // Paid to vendors section on its own page so the total appears at the section end.
-    doc.addPage();
-    y = 20;
     y = sectionTitle(doc, y, "Paid to vendors");
     y = table(doc, y,
       ["Date", "Paid to (vendor)", "Type", "Cash user", "Amount"],
@@ -192,16 +190,21 @@ function ReportPage() {
       { align: { 4: "right" } });
 
     // Actual outstanding balance per vendor (live, not period-scoped).
+    const prevOf = (id: string, remaining: number) => {
+      const r = vendorRows.find(v => v.vendor_id === id);
+      return r ? r.old_balance : remaining;
+    };
     y = sectionTitle(doc, y, "Vendor remaining balances (actual)");
     y = table(doc, y,
-      ["Vendor", "Remaining balance"],
-      payableRows.map(v => [v.name, pdfMoney(v.remaining)]),
-      [["TOTAL REMAINING PAYABLE", pdfMoney(actualPayable)]],
-      { align: { 1: "right" } });
+      ["Vendor", "Previous balance", "Remaining balance"],
+      payableRows.map(v => [v.name, pdfMoney(prevOf(v.id, v.remaining)), pdfMoney(v.remaining)]),
+      [["TOTAL", pdfMoney(payableRows.reduce((s, v) => s + prevOf(v.id, v.remaining), 0)), pdfMoney(actualPayable)]],
+      { align: { 1: "right", 2: "right" } });
 
     // Summary block immediately after the Paid to vendors section.
     y = summaryRows(doc, y, [
       ["TOTAL RECEIVED", pdfMoney(overall.received)],
+      ["TOTAL CASH IN HAND AFTER RECEIVING", pdfMoney(overall.opening + overall.received)],
       ["TOTAL PAID TO VENDORS", pdfMoney(overall.paidVendors)],
       ["TOTAL PAID + EXPENSES", pdfMoney(overall.paidVendors + overall.expenses)],
       ["CASH IN HAND LEFT", pdfMoney(overall.closing), true],
@@ -209,8 +212,6 @@ function ReportPage() {
     ]);
 
     if (overall.expenseRows.length) {
-      doc.addPage();
-      y = 20;
       y = sectionTitle(doc, y, "Expenses & overheads");
       y = table(doc, y,
         ["Date", "Expense type", "Cash user", "Amount"],
@@ -375,6 +376,8 @@ function ReportPage() {
             <div className="grid gap-2 md:grid-cols-3 lg:grid-cols-6 mb-4">
               <StatCard label="Opening" value={fmtMoney(overall.opening, sym)} />
               <StatCard label="Received" value={fmtMoney(overall.received, sym)} />
+              <StatCard label="Total after receiving" value={fmtMoney(overall.opening + overall.received, sym)} />
+
               <StatCard label="Paid to vendors" value={fmtMoney(overall.paidVendors, sym)} />
               <StatCard label="Expenses" value={fmtMoney(overall.expenses, sym)} />
               <StatCard label="Cash in hand left" value={fmtMoney(overall.closing, sym)} />
