@@ -83,6 +83,14 @@ function ReportPage() {
     paid: a.paid + r.paid, today: a.today + r.paid_today, rem: a.rem + r.remaining,
   }), { old: 0, cur: 0, total: 0, paid: 0, today: 0, rem: 0 });
 
+  /** Actual outstanding payable per vendor (live balance kept by the DB), not period-scoped. */
+  const payableRows = useMemo(() => (vendors.data ?? [])
+    .filter(v => v.restaurant_id === restId && v.is_active)
+    .map(v => ({ id: v.id, name: v.name, remaining: Number(v.current_balance) }))
+    .filter(v => Math.abs(v.remaining) > 0.004)
+    .sort((a, b) => b.remaining - a.remaining), [vendors.data, restId]);
+  const actualPayable = payableRows.reduce((s, v) => s + v.remaining, 0);
+
   const cashRows = useMemo(() => {
     const list = txns.filter(t => t.restaurant_id === restId && (!scopedVaultId || t.vault_id === scopedVaultId)
       && (!from || t.date >= dayStart(from)) && (!to || t.date < dayEnd(to)));
