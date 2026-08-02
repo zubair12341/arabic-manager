@@ -83,6 +83,14 @@ function ReportPage() {
     paid: a.paid + r.paid, today: a.today + r.paid_today, rem: a.rem + r.remaining,
   }), { old: 0, cur: 0, total: 0, paid: 0, today: 0, rem: 0 });
 
+  /** Actual outstanding payable per vendor (live balance kept by the DB), not period-scoped. */
+  const payableRows = useMemo(() => (vendors.data ?? [])
+    .filter(v => v.restaurant_id === restId && v.is_active)
+    .map(v => ({ id: v.id, name: v.name, remaining: Number(v.current_balance) }))
+    .filter(v => Math.abs(v.remaining) > 0.004)
+    .sort((a, b) => b.remaining - a.remaining), [vendors.data, restId]);
+  const actualPayable = payableRows.reduce((s, v) => s + v.remaining, 0);
+
   const cashRows = useMemo(() => {
     const list = txns.filter(t => t.restaurant_id === restId && (!scopedVaultId || t.vault_id === scopedVaultId)
       && (!from || t.date >= dayStart(from)) && (!to || t.date < dayEnd(to)));
@@ -183,13 +191,21 @@ function ReportPage() {
       [["", "", "", "TOTAL PAID TO VENDORS", pdfMoney(overall.paidVendors)]],
       { align: { 4: "right" } });
 
+    // Actual outstanding balance per vendor (live, not period-scoped).
+    y = sectionTitle(doc, y, "Vendor remaining balances (actual)");
+    y = table(doc, y,
+      ["Vendor", "Remaining balance"],
+      payableRows.map(v => [v.name, pdfMoney(v.remaining)]),
+      [["TOTAL REMAINING PAYABLE", pdfMoney(actualPayable)]],
+      { align: { 1: "right" } });
+
     // Summary block immediately after the Paid to vendors section.
     y = summaryRows(doc, y, [
       ["TOTAL RECEIVED", pdfMoney(overall.received)],
       ["TOTAL PAID TO VENDORS", pdfMoney(overall.paidVendors)],
       ["TOTAL PAID + EXPENSES", pdfMoney(overall.paidVendors + overall.expenses)],
       ["CASH IN HAND LEFT", pdfMoney(overall.closing), true],
-      ["TOTAL REMAINING PAYABLE", pdfMoney(vTotals.rem), true],
+      ["TOTAL REMAINING PAYABLE", pdfMoney(actualPayable), true],
     ]);
 
     if (overall.expenseRows.length) {
@@ -225,7 +241,7 @@ function ReportPage() {
     summaryRows(doc, y, [
       ["CASH IN HAND — OPENING", pdfMoney(overall.opening)],
       ["CASH IN HAND — CURRENT", pdfMoney(overall.closing)],
-      ["TOTAL REMAINING PAYABLE", pdfMoney(vTotals.rem), true],
+      ["TOTAL REMAINING PAYABLE", pdfMoney(actualPayable), true],
     ]);
     save(doc, `vendor-report-${restName}`);
   };
@@ -362,7 +378,7 @@ function ReportPage() {
               <StatCard label="Paid to vendors" value={fmtMoney(overall.paidVendors, sym)} />
               <StatCard label="Expenses" value={fmtMoney(overall.expenses, sym)} />
               <StatCard label="Cash in hand left" value={fmtMoney(overall.closing, sym)} />
-              <StatCard label="Total remaining payable" value={fmtMoney(vTotals.rem, sym)} />
+              <StatCard label="Total remaining payable" value={fmtMoney(actualPayable, sym)} />
             </div>
 
             {cashRows.length === 0 ? <EmptyState title="No transactions" description="No cash movement in this period." /> : (
