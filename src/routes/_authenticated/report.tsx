@@ -378,7 +378,7 @@ function ReportPage() {
               <StatCard label="Paid to vendors" value={fmtMoney(overall.paidVendors, sym)} />
               <StatCard label="Expenses" value={fmtMoney(overall.expenses, sym)} />
               <StatCard label="Cash in hand left" value={fmtMoney(overall.closing, sym)} />
-              <StatCard label="Total remaining payable" value={fmtMoney(vTotals.rem, sym)} />
+              <StatCard label="Total remaining payable" value={fmtMoney(actualPayable, sym)} />
             </div>
 
             {cashRows.length === 0 ? <EmptyState title="No transactions" description="No cash movement in this period." /> : (
