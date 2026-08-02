@@ -71,19 +71,29 @@ function LedgerPage() {
           debit: 0, credit: Number(p.amount),
         });
       }
-      rows.sort((a, b) => a.entry_date.localeCompare(b.entry_date));
+      const rank = (t: Entry["entry_type"]) => (t === "opening" ? 0 : t === "purchase" ? 1 : 2);
+      rows.sort((a, b) => {
+        if (a.entry_type === "opening") return -1;
+        if (b.entry_type === "opening") return 1;
+        return a.entry_date.localeCompare(b.entry_date) || rank(a.entry_type) - rank(b.entry_type);
+      });
       return rows;
     },
   });
 
   const filtered = useMemo(() => (entriesQ.data ?? []).filter(e =>
-    (!from || e.entry_date >= from) &&
-    (!to || e.entry_date <= new Date(new Date(to).getTime() + 86400000).toISOString())
+    e.entry_type === "opening" ||
+    ((!from || e.entry_date >= from) &&
+      (!to || e.entry_date <= new Date(new Date(to).getTime() + 86400000).toISOString()))
   ), [entriesQ.data, from, to]);
 
   const totals = useMemo(() => {
     let running = 0, debit = 0, credit = 0;
-    const withRunning = filtered.map(e => { running += e.debit - e.credit; debit += e.debit; credit += e.credit; return { ...e, running }; });
+    const withRunning = filtered.map(e => {
+      running += e.debit - e.credit;
+      if (e.entry_type !== "opening") { debit += e.debit; credit += e.credit; }
+      return { ...e, running };
+    });
     return { rows: withRunning, debit, credit, closing: running };
   }, [filtered]);
 
@@ -141,9 +151,13 @@ function LedgerPage() {
             </TableRow></TableHeader>
             <TableBody>
               {totals.rows.map((r, i) => (
-                <TableRow key={i}>
+                <TableRow key={i} className={r.entry_type === "opening" ? "bg-primary/10 font-semibold" : undefined}>
                   <TableCell>{fmtDate(r.entry_date)}</TableCell>
-                  <TableCell className="capitalize">{r.entry_type}</TableCell>
+                  <TableCell className="capitalize">
+                    {r.entry_type === "opening"
+                      ? <span className="inline-flex items-center rounded-full bg-primary/15 text-primary px-2 py-0.5 text-xs font-medium">Opening balance</span>
+                      : r.entry_type}
+                  </TableCell>
                   <TableCell>{r.description}</TableCell>
                   <TableCell className="text-right tabular-nums">{r.debit ? fmtMoney(r.debit, sym) : "—"}</TableCell>
                   <TableCell className="text-right tabular-nums">{r.credit ? fmtMoney(r.credit, sym) : "—"}</TableCell>
