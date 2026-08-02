@@ -204,6 +204,7 @@ function ReportPage() {
     // Summary block immediately after the Paid to vendors section.
     y = summaryRows(doc, y, [
       ["TOTAL RECEIVED", pdfMoney(overall.received)],
+      ["TOTAL CASH IN HAND AFTER RECEIVING", pdfMoney(overall.opening + overall.received)],
       ["TOTAL PAID TO VENDORS", pdfMoney(overall.paidVendors)],
       ["TOTAL PAID + EXPENSES", pdfMoney(overall.paidVendors + overall.expenses)],
       ["CASH IN HAND LEFT", pdfMoney(overall.closing), true],
@@ -211,8 +212,6 @@ function ReportPage() {
     ]);
 
     if (overall.expenseRows.length) {
-      doc.addPage();
-      y = 20;
       y = sectionTitle(doc, y, "Expenses & overheads");
       y = table(doc, y,
         ["Date", "Expense type", "Cash user", "Amount"],
