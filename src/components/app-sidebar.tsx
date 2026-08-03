@@ -1,7 +1,7 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
   LayoutDashboard, Store, Users, ShoppingCart, HandCoins, BookOpen, Wallet, FileText, Settings, LogOut, Receipt,
-} from "lucide-react";
+} CalendarDays } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/sidebar";
 
 const items = [
+  { title: "Daily Sale", url: "/daily-sales", icon: CalendarDays },
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
   { title: "Restaurants", url: "/restaurants", icon: Store },
   { title: "Vendors", url: "/vendors", icon: Users },
