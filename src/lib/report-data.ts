@@ -79,12 +79,16 @@ export const dayEnd = (d: string) => new Date(new Date(`${d}T00:00:00`).getTime(
 export type CashPeriod = {
   opening: number;
   received: number;
+  cashSale: number;
+  transfersIn: number;
+  transfersOut: number;
   paidVendors: number;
   expenses: number;
   closing: number;
   vendorRows: Txn[];
   expenseRows: Txn[];
   receivedRows: Txn[];
+  transferOutRows: Txn[];
   rows: Txn[];
 };
 
@@ -110,19 +114,25 @@ export function cashPeriod(args: {
   const opening = vaultOpening + before.reduce((s, t) => s + t.inflow - t.outflow, 0);
 
   const rows = all.filter(t => (!args.from || t.date >= args.from) && (!args.to || t.date < args.to));
-  const receivedRows = rows.filter(t => t.kind === "Cash added");
+  // Every cash inflow row (manual deposit, daily cash sale, transfer received).
+  const receivedRows = rows.filter(t => t.inflow > 0);
+  const transferOutRows = rows.filter(t => t.kind === "Cash transfer out");
   const vendorRows = rows.filter(t => t.kind === "Payment" || t.kind === "Purchase (cash)");
   const expenseRows = rows.filter(t => t.kind === "Expense");
   const sum = (list: Txn[], k: "inflow" | "outflow") => list.reduce((s, t) => s + t[k], 0);
 
   const received = sum(receivedRows, "inflow");
+  const cashSale = sum(rows.filter(t => t.kind === "Cash sale"), "inflow");
+  const transfersIn = sum(rows.filter(t => t.kind === "Cash transfer in"), "inflow");
+  const transfersOut = sum(transferOutRows, "outflow");
   const paidVendors = sum(vendorRows, "outflow");
   const expenses = sum(expenseRows, "outflow");
 
   return {
-    opening, received, paidVendors, expenses,
-    closing: opening + received - paidVendors - expenses,
-    vendorRows, expenseRows, receivedRows, rows,
+    opening, received, cashSale, transfersIn, transfersOut, paidVendors, expenses,
+    closing: opening + received - paidVendors - expenses - transfersOut,
+    vendorRows, expenseRows, receivedRows, transferOutRows, rows,
+
   };
 }
 
