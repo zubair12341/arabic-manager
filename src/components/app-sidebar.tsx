@@ -1,7 +1,9 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
   LayoutDashboard, Store, Users, ShoppingCart, HandCoins, BookOpen, Wallet, FileText, Settings, LogOut, Receipt,
-} CalendarDays } from "lucide-react";
+  CalendarDays,
+} from "lucide-react";
+
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
