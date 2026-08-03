@@ -74,11 +74,97 @@ export type Database = {
         }
         Relationships: []
       }
+      daily_sales: {
+        Row: {
+          actual_cash_counted: number | null
+          cash_sale: number
+          closed_at: string | null
+          closed_by: string | null
+          counter_vault_id: string | null
+          created_at: string
+          created_by: string | null
+          discount: number
+          id: string
+          is_closed: boolean
+          is_deleted: boolean
+          notes: string | null
+          online_sale: number
+          other_income: number
+          pending_online_recv: number
+          restaurant_id: string
+          sale_date: string
+          total_sale: number
+          udhaar_sale: number
+          updated_at: string
+        }
+        Insert: {
+          actual_cash_counted?: number | null
+          cash_sale?: number
+          closed_at?: string | null
+          closed_by?: string | null
+          counter_vault_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          discount?: number
+          id?: string
+          is_closed?: boolean
+          is_deleted?: boolean
+          notes?: string | null
+          online_sale?: number
+          other_income?: number
+          pending_online_recv?: number
+          restaurant_id: string
+          sale_date: string
+          total_sale?: number
+          udhaar_sale?: number
+          updated_at?: string
+        }
+        Update: {
+          actual_cash_counted?: number | null
+          cash_sale?: number
+          closed_at?: string | null
+          closed_by?: string | null
+          counter_vault_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          discount?: number
+          id?: string
+          is_closed?: boolean
+          is_deleted?: boolean
+          notes?: string | null
+          online_sale?: number
+          other_income?: number
+          pending_online_recv?: number
+          restaurant_id?: string
+          sale_date?: string
+          total_sale?: number
+          udhaar_sale?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_sales_counter_vault_id_fkey"
+            columns: ["counter_vault_id"]
+            isOneToOne: false
+            referencedRelation: "vaults"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "daily_sales_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       expenses: {
         Row: {
           amount: number
+          category: string | null
           created_at: string
           created_by: string | null
+          daily_sale_id: string | null
           expense_date: string
           expense_type: string
           id: string
@@ -90,8 +176,10 @@ export type Database = {
         }
         Insert: {
           amount: number
+          category?: string | null
           created_at?: string
           created_by?: string | null
+          daily_sale_id?: string | null
           expense_date?: string
           expense_type: string
           id?: string
@@ -103,8 +191,10 @@ export type Database = {
         }
         Update: {
           amount?: number
+          category?: string | null
           created_at?: string
           created_by?: string | null
+          daily_sale_id?: string | null
           expense_date?: string
           expense_type?: string
           id?: string
@@ -115,6 +205,13 @@ export type Database = {
           vault_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "expenses_daily_sale_id_fkey"
+            columns: ["daily_sale_id"]
+            isOneToOne: false
+            referencedRelation: "daily_sales"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "expenses_restaurant_id_fkey"
             columns: ["restaurant_id"]
@@ -360,11 +457,14 @@ export type Database = {
           amount: number
           created_at: string
           created_by: string | null
+          daily_sale_id: string | null
           deposit_date: string
           id: string
           is_deleted: boolean
+          kind: string | null
           note: string | null
           restaurant_id: string
+          transfer_group_id: string | null
           updated_at: string
           vault_id: string
         }
@@ -372,11 +472,14 @@ export type Database = {
           amount: number
           created_at?: string
           created_by?: string | null
+          daily_sale_id?: string | null
           deposit_date?: string
           id?: string
           is_deleted?: boolean
+          kind?: string | null
           note?: string | null
           restaurant_id: string
+          transfer_group_id?: string | null
           updated_at?: string
           vault_id: string
         }
@@ -384,15 +487,25 @@ export type Database = {
           amount?: number
           created_at?: string
           created_by?: string | null
+          daily_sale_id?: string | null
           deposit_date?: string
           id?: string
           is_deleted?: boolean
+          kind?: string | null
           note?: string | null
           restaurant_id?: string
+          transfer_group_id?: string | null
           updated_at?: string
           vault_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "vault_deposits_daily_sale_id_fkey"
+            columns: ["daily_sale_id"]
+            isOneToOne: false
+            referencedRelation: "daily_sales"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "vault_deposits_restaurant_id_fkey"
             columns: ["restaurant_id"]
@@ -551,6 +664,14 @@ export type Database = {
           vendor_id: string
           vendor_name: string
         }[]
+      }
+      set_daily_cash_transfer: {
+        Args: {
+          p_amount: number
+          p_daily_sale_id: string
+          p_to_vault_id: string
+        }
+        Returns: undefined
       }
     }
     Enums: {

@@ -1,11 +1,20 @@
 import type { Purchase, Payment, VaultDeposit, Expense, Vendor, Vault } from "@/lib/queries";
 
+export type TxnKind =
+  | "Cash added"
+  | "Cash sale"
+  | "Cash transfer in"
+  | "Cash transfer out"
+  | "Payment"
+  | "Purchase (cash)"
+  | "Expense";
+
 export type Txn = {
   id: string;
   date: string;
   restaurant_id: string;
   vault_id: string;
-  kind: "Cash added" | "Payment" | "Purchase (cash)" | "Expense";
+  kind: TxnKind;
   party: string;      // vendor / paid-to / expense type
   detail: string;
   inflow: number;
@@ -23,9 +32,21 @@ export function buildTxns(args: {
   const out: Txn[] = [];
 
   for (const d of args.deposits) {
+    const amt = Number(d.amount);
+    // Transfers are recorded as a signed pair of deposit rows (out = negative).
+    const isTransfer = d.kind === "transfer_in" || d.kind === "transfer_out";
+    const kind: TxnKind = d.kind === "cash_sale"
+      ? "Cash sale"
+      : isTransfer
+        ? (amt < 0 ? "Cash transfer out" : "Cash transfer in")
+        : "Cash added";
     out.push({
       id: d.id, date: d.deposit_date, restaurant_id: d.restaurant_id, vault_id: d.vault_id,
-      kind: "Cash added", party: "Cash received", detail: d.note ?? "", inflow: Number(d.amount), outflow: 0,
+      kind,
+      party: kind === "Cash sale" ? "Daily cash sale" : kind === "Cash transfer out" ? "Cash handed over" : "Cash received",
+      detail: d.note ?? "",
+      inflow: amt > 0 ? amt : 0,
+      outflow: amt < 0 ? -amt : 0,
     });
   }
   for (const p of args.payments) {
@@ -51,18 +72,23 @@ export function buildTxns(args: {
   return out.sort((a, b) => a.date.localeCompare(b.date));
 }
 
+
 export const dayStart = (d: string) => new Date(`${d}T00:00:00`).toISOString();
 export const dayEnd = (d: string) => new Date(new Date(`${d}T00:00:00`).getTime() + 86400000).toISOString();
 
 export type CashPeriod = {
   opening: number;
   received: number;
+  cashSale: number;
+  transfersIn: number;
+  transfersOut: number;
   paidVendors: number;
   expenses: number;
   closing: number;
   vendorRows: Txn[];
   expenseRows: Txn[];
   receivedRows: Txn[];
+  transferOutRows: Txn[];
   rows: Txn[];
 };
 
@@ -88,19 +114,25 @@ export function cashPeriod(args: {
   const opening = vaultOpening + before.reduce((s, t) => s + t.inflow - t.outflow, 0);
 
   const rows = all.filter(t => (!args.from || t.date >= args.from) && (!args.to || t.date < args.to));
-  const receivedRows = rows.filter(t => t.kind === "Cash added");
+  // Every cash inflow row (manual deposit, daily cash sale, transfer received).
+  const receivedRows = rows.filter(t => t.inflow > 0);
+  const transferOutRows = rows.filter(t => t.kind === "Cash transfer out");
   const vendorRows = rows.filter(t => t.kind === "Payment" || t.kind === "Purchase (cash)");
   const expenseRows = rows.filter(t => t.kind === "Expense");
   const sum = (list: Txn[], k: "inflow" | "outflow") => list.reduce((s, t) => s + t[k], 0);
 
   const received = sum(receivedRows, "inflow");
+  const cashSale = sum(rows.filter(t => t.kind === "Cash sale"), "inflow");
+  const transfersIn = sum(rows.filter(t => t.kind === "Cash transfer in"), "inflow");
+  const transfersOut = sum(transferOutRows, "outflow");
   const paidVendors = sum(vendorRows, "outflow");
   const expenses = sum(expenseRows, "outflow");
 
   return {
-    opening, received, paidVendors, expenses,
-    closing: opening + received - paidVendors - expenses,
-    vendorRows, expenseRows, receivedRows, rows,
+    opening, received, cashSale, transfersIn, transfersOut, paidVendors, expenses,
+    closing: opening + received - paidVendors - expenses - transfersOut,
+    vendorRows, expenseRows, receivedRows, transferOutRows, rows,
+
   };
 }
 
