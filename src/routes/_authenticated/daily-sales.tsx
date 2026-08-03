@@ -203,12 +203,14 @@ function DailySalesPage() {
     mutationFn: async (v: { actual: string; close?: boolean; reopen?: boolean }) => {
       if (!day) throw new Error("No day loaded");
       const { data: auth } = await supabase.auth.getUser();
-      const patch: Record<string, unknown> = {
-        actual_cash_counted: v.actual === "" ? null : Number(v.actual),
-      };
+      const patch: {
+        actual_cash_counted: number | null;
+        is_closed?: boolean; closed_at?: string | null; closed_by?: string | null;
+      } = { actual_cash_counted: v.actual === "" ? null : Number(v.actual) };
       if (v.close) { patch.is_closed = true; patch.closed_at = new Date().toISOString(); patch.closed_by = auth.user?.id ?? null; }
       if (v.reopen) { patch.is_closed = false; patch.closed_at = null; patch.closed_by = null; }
       const { error } = await supabase.from("daily_sales").update(patch).eq("id", day.id);
+
       if (error) throw error;
     },
     onSuccess: () => { invalidate(); toast.success("Closing saved"); },
