@@ -264,6 +264,23 @@ function DailySalesPage() {
   const transferVaults = restVaults.filter(v => v.id !== day?.counter_vault_id);
   const vendorName = (id: string) => vendors.data?.find(v => v.id === id)?.name ?? "—";
 
+  /** Per cash-in-hand user movement for the selected date. */
+  const vaultBreakdown = useMemo(() => restVaults.map(v => {
+    const p = cashPeriod({
+      txns, vaults: vaults.data ?? [], restaurantId: restId, vaultId: v.id,
+      from: dayStart(date), to: dayEnd(date),
+    });
+    return { vault: v, p, other: p.received - p.cashSale - p.transfersIn };
+  }), [restVaults, txns, vaults.data, restId, date]);
+
+  const bdTotals = vaultBreakdown.reduce((a, r) => ({
+    opening: a.opening + r.p.opening, cashSale: a.cashSale + r.p.cashSale,
+    transfersIn: a.transfersIn + r.p.transfersIn, other: a.other + r.other,
+    transfersOut: a.transfersOut + r.p.transfersOut, paid: a.paid + r.p.paidVendors,
+    exp: a.exp + r.p.expenses, closing: a.closing + r.p.closing,
+  }), { opening: 0, cashSale: 0, transfersIn: 0, other: 0, transfersOut: 0, paid: 0, exp: 0, closing: 0 });
+
+
   const numField = (label: string, key: keyof SaleForm) => (
     <div>
       <Label>{label}</Label>
@@ -374,6 +391,57 @@ function DailySalesPage() {
               </div>
             )}
           </Card>
+
+          {/* -------- Cash in hand by user (this date) -------- */}
+          <Card className="p-5">
+            <h2 className="font-semibold">Cash in hand by user — {fmtDate(date)}</h2>
+            <p className="text-sm text-muted-foreground mb-3">
+              What each cash-in-hand user started with, received from the day's sale and transfers, spent, and is left holding at the end of this date.
+            </p>
+            <div className="border rounded-lg overflow-x-auto">
+              <Table>
+                <TableHeader><TableRow>
+                  <TableHead>Cash user</TableHead>
+                  <TableHead className="text-right">Opening</TableHead>
+                  <TableHead className="text-right">From sale</TableHead>
+                  <TableHead className="text-right">Transfer in</TableHead>
+                  <TableHead className="text-right">Other received</TableHead>
+                  <TableHead className="text-right">Transfer out</TableHead>
+                  <TableHead className="text-right">Paid vendors</TableHead>
+                  <TableHead className="text-right">Expenses</TableHead>
+                  <TableHead className="text-right">Cash left</TableHead>
+                </TableRow></TableHeader>
+                <TableBody>
+                  {vaultBreakdown.map(({ vault, p, other }) => (
+                    <TableRow key={vault.id}>
+                      <TableCell className="font-medium">{vault.vault_user_name}</TableCell>
+                      <TableCell className="text-right tabular-nums">{fmtMoney(p.opening, sym)}</TableCell>
+                      <TableCell className="text-right tabular-nums">{fmtMoney(p.cashSale, sym)}</TableCell>
+                      <TableCell className="text-right tabular-nums">{fmtMoney(p.transfersIn, sym)}</TableCell>
+                      <TableCell className="text-right tabular-nums">{fmtMoney(other, sym)}</TableCell>
+                      <TableCell className="text-right tabular-nums">{fmtMoney(p.transfersOut, sym)}</TableCell>
+                      <TableCell className="text-right tabular-nums">{fmtMoney(p.paidVendors, sym)}</TableCell>
+                      <TableCell className="text-right tabular-nums">{fmtMoney(p.expenses, sym)}</TableCell>
+                      <TableCell className="text-right tabular-nums font-semibold">{fmtMoney(p.closing, sym)}</TableCell>
+                    </TableRow>
+                  ))}
+                  <TableRow className="bg-muted/40 font-semibold">
+                    <TableCell>Total</TableCell>
+                    <TableCell className="text-right tabular-nums">{fmtMoney(bdTotals.opening, sym)}</TableCell>
+                    <TableCell className="text-right tabular-nums">{fmtMoney(bdTotals.cashSale, sym)}</TableCell>
+                    <TableCell className="text-right tabular-nums">{fmtMoney(bdTotals.transfersIn, sym)}</TableCell>
+                    <TableCell className="text-right tabular-nums">{fmtMoney(bdTotals.other, sym)}</TableCell>
+                    <TableCell className="text-right tabular-nums">{fmtMoney(bdTotals.transfersOut, sym)}</TableCell>
+                    <TableCell className="text-right tabular-nums">{fmtMoney(bdTotals.paid, sym)}</TableCell>
+                    <TableCell className="text-right tabular-nums">{fmtMoney(bdTotals.exp, sym)}</TableCell>
+                    <TableCell className="text-right tabular-nums">{fmtMoney(bdTotals.closing, sym)}</TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
+            </div>
+          </Card>
+
+
 
           {/* -------- Today's expenses -------- */}
           <Card className="p-5">
@@ -530,7 +598,10 @@ function DailySalesPage() {
                   <SelectContent>{restVaults.map(v => <SelectItem key={v.id} value={v.id}>{v.vault_user_name} — {fmtMoney(v.current_balance, sym)}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
-              <div><Label>Note</Label><Input value={expForm.note} onChange={(e) => setExpForm({ ...expForm, note: e.target.value })} /></div>
+              <div><Label>Details / note (optional)</Label>
+                <Textarea rows={3} value={expForm.note} onChange={(e) => setExpForm({ ...expForm, note: e.target.value })}
+                  placeholder="Optional details — e.g. bill number, who received it, what it covers" /></div>
+
             </div>
             <DialogFooter>
               <Button variant="ghost" onClick={() => setExpForm(null)}>Cancel</Button>

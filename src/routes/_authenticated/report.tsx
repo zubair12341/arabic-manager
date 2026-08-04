@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { restaurantsQuery, vaultsQuery, vendorsQuery, purchasesQuery, paymentsQuery, vaultDepositsQuery, expensesQuery } from "@/lib/queries";
+import { restaurantsQuery, vaultsQuery, vendorsQuery, purchasesQuery, paymentsQuery, vaultDepositsQuery, expensesQuery, dailySalesQuery } from "@/lib/queries";
 import { settingsQuery } from "@/lib/settings";
 import { PageHeader, EmptyState, StatCard } from "@/components/page-shell";
 import { Button } from "@/components/ui/button";
@@ -108,6 +108,64 @@ function ReportPage() {
   ), [expenses.data, restId, scopedVaultId, from, to]);
 
   const vaultName = (id: string) => vaults.data?.find(v => v.id === id)?.vault_user_name ?? "—";
+
+  /* ------------------- Daily closing (day-by-day over a range) ------------------- */
+  const dailySales = useQuery({ ...dailySalesQuery(restId || null), enabled: !!restId });
+
+  const dayKey = (iso: string) =>
+    new Date(new Date(iso).getTime() - new Date(iso).getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+
+  const closingRows = useMemo(() => {
+    if (!restId) return [];
+    const dates = new Set<string>();
+    for (const t of txns) if (t.restaurant_id === restId && (!scopedVaultId || t.vault_id === scopedVaultId)) dates.add(dayKey(t.date));
+    for (const d of dailySales.data ?? []) dates.add(d.sale_date);
+    const list = [...dates]
+      .filter(d => (!from || d >= from) && (!to || d <= to))
+      .sort();
+    return list.map(d => {
+      const p = cashPeriod({
+        txns, vaults: vaults.data ?? [], restaurantId: restId, vaultId: scopedVaultId,
+        from: dayStart(d), to: dayEnd(d),
+      });
+      const sale = (dailySales.data ?? []).find(s => s.sale_date === d) ?? null;
+      return { date: d, p, sale };
+    });
+  }, [txns, vaults.data, restId, scopedVaultId, from, to, dailySales.data]);
+
+  const cTotals = closingRows.reduce((a, r) => ({
+    sale: a.sale + Number(r.sale?.total_sale ?? 0),
+    received: a.received + r.p.received,
+    paid: a.paid + r.p.paidVendors,
+    exp: a.exp + r.p.expenses,
+  }), { sale: 0, received: 0, paid: 0, exp: 0 });
+
+  const exportClosing = () => {
+    const doc = newDoc();
+    let y = docHeader(doc, {
+      business, title: `${restName} — Daily Closing Report`,
+      meta: cashHeaderMeta(`${from ? pdfDate(from) : "Start"} to ${to ? pdfDate(to) : "Today"}`),
+    });
+    y = table(doc, y,
+      ["Date", "Day", "Total sale", "Opening cash", "Received", "Paid vendors", "Expenses", "Cash left", "Status"],
+      closingRows.map(r => [
+        pdfDate(r.date), dayName(r.date), pdfMoney(r.sale?.total_sale ?? 0), pdfMoney(r.p.opening),
+        pdfMoney(r.p.received), pdfMoney(r.p.paidVendors), pdfMoney(r.p.expenses), pdfMoney(r.p.closing),
+        r.sale?.is_closed ? "Locked" : "Open",
+      ]),
+      [["TOTAL", "", pdfMoney(cTotals.sale), "", pdfMoney(cTotals.received), pdfMoney(cTotals.paid), pdfMoney(cTotals.exp),
+        pdfMoney(closingRows.length ? closingRows[closingRows.length - 1].p.closing : 0), ""]],
+      { align: { 2: "right", 3: "right", 4: "right", 5: "right", 6: "right", 7: "right" } });
+    summaryRows(doc, y, [
+      ["TOTAL SALE (PERIOD)", pdfMoney(cTotals.sale)],
+      ["TOTAL CASH RECEIVED", pdfMoney(cTotals.received)],
+      ["TOTAL PAID TO VENDORS", pdfMoney(cTotals.paid)],
+      ["TOTAL EXPENSES", pdfMoney(cTotals.exp)],
+      ["CASH IN HAND LEFT (END OF PERIOD)", pdfMoney(overall.closing), true],
+    ]);
+    save(doc, `daily-closing-${restName}`);
+  };
+
 
   /* ------------------------------- PDF exports ------------------------------- */
 
@@ -298,6 +356,8 @@ function ReportPage() {
             <TabsTrigger value="vendor">Vendor Report</TabsTrigger>
             <TabsTrigger value="cash">Cash in Hand</TabsTrigger>
             <TabsTrigger value="expenses">Expenses</TabsTrigger>
+            <TabsTrigger value="closing">Daily Closing</TabsTrigger>
+
           </TabsList>
 
           {/* DAILY */}
@@ -442,7 +502,59 @@ function ReportPage() {
               </div>
             )}
           </TabsContent>
+
+          {/* DAILY CLOSING */}
+          <TabsContent value="closing">
+            <div className="flex justify-between items-center mb-3 flex-wrap gap-2">
+              <div className="text-sm text-muted-foreground">
+                Every date in the selected range — sale, cash received, payments, expenses and the cash left at the end of each day.
+              </div>
+              <Button onClick={exportClosing} disabled={closingRows.length === 0}><Download className="h-4 w-4 mr-1" /> Download Closing PDF</Button>
+            </div>
+            {closingRows.length === 0 ? <EmptyState title="No days" description="No activity in this period." /> : (
+              <div className="border rounded-lg bg-card overflow-x-auto">
+                <Table>
+                  <TableHeader><TableRow>
+                    <TableHead>Date</TableHead><TableHead>Day</TableHead>
+                    <TableHead className="text-right">Total sale</TableHead>
+                    <TableHead className="text-right">Opening cash</TableHead>
+                    <TableHead className="text-right">Received</TableHead>
+                    <TableHead className="text-right">Paid vendors</TableHead>
+                    <TableHead className="text-right">Expenses</TableHead>
+                    <TableHead className="text-right">Cash left</TableHead>
+                    <TableHead>Status</TableHead>
+                  </TableRow></TableHeader>
+                  <TableBody>
+                    {closingRows.map(r => (
+                      <TableRow key={r.date}>
+                        <TableCell>{fmtDate(r.date)}</TableCell>
+                        <TableCell className="text-muted-foreground">{dayName(r.date)}</TableCell>
+                        <TableCell className="text-right tabular-nums">{fmtMoney(r.sale?.total_sale ?? 0, sym)}</TableCell>
+                        <TableCell className="text-right tabular-nums">{fmtMoney(r.p.opening, sym)}</TableCell>
+                        <TableCell className="text-right tabular-nums">{fmtMoney(r.p.received, sym)}</TableCell>
+                        <TableCell className="text-right tabular-nums">{fmtMoney(r.p.paidVendors, sym)}</TableCell>
+                        <TableCell className="text-right tabular-nums">{fmtMoney(r.p.expenses, sym)}</TableCell>
+                        <TableCell className="text-right tabular-nums font-semibold">{fmtMoney(r.p.closing, sym)}</TableCell>
+                        <TableCell className="text-xs text-muted-foreground">{r.sale?.is_closed ? "Locked" : "Open"}</TableCell>
+                      </TableRow>
+                    ))}
+                    <TableRow className="bg-muted/40 font-semibold">
+                      <TableCell colSpan={2}>Totals</TableCell>
+                      <TableCell className="text-right tabular-nums">{fmtMoney(cTotals.sale, sym)}</TableCell>
+                      <TableCell />
+                      <TableCell className="text-right tabular-nums">{fmtMoney(cTotals.received, sym)}</TableCell>
+                      <TableCell className="text-right tabular-nums">{fmtMoney(cTotals.paid, sym)}</TableCell>
+                      <TableCell className="text-right tabular-nums">{fmtMoney(cTotals.exp, sym)}</TableCell>
+                      <TableCell className="text-right tabular-nums">{fmtMoney(closingRows[closingRows.length - 1].p.closing, sym)}</TableCell>
+                      <TableCell />
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </TabsContent>
         </Tabs>
+
       )}
     </div>
   );
