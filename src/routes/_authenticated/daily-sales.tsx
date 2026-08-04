@@ -598,7 +598,10 @@ function DailySalesPage() {
                   <SelectContent>{restVaults.map(v => <SelectItem key={v.id} value={v.id}>{v.vault_user_name} — {fmtMoney(v.current_balance, sym)}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
-              <div><Label>Note</Label><Input value={expForm.note} onChange={(e) => setExpForm({ ...expForm, note: e.target.value })} /></div>
+              <div><Label>Details / note (optional)</Label>
+                <Textarea rows={3} value={expForm.note} onChange={(e) => setExpForm({ ...expForm, note: e.target.value })}
+                  placeholder="Optional details — e.g. bill number, who received it, what it covers" /></div>
+
             </div>
             <DialogFooter>
               <Button variant="ghost" onClick={() => setExpForm(null)}>Cancel</Button>
