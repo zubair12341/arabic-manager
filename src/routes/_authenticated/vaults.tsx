@@ -369,7 +369,11 @@ function VaultForm({ form, setForm, restaurants, onSave, saving }: any) {
           </Select>
         </div>
         <div><Label>Vault / user name</Label><Input value={form.vault_user_name} onChange={(e) => setForm({ ...form, vault_user_name: e.target.value })} placeholder="e.g. Manager A Cash" /></div>
-        <div><Label>Opening balance</Label><Input type="number" step="0.01" value={form.opening_balance} onChange={(e) => setForm({ ...form, opening_balance: e.target.value })} disabled={!!form.id} /></div>
+        <div>
+          <Label>Opening balance</Label>
+          <Input type="number" step="0.01" value={form.opening_balance} onChange={(e) => setForm({ ...form, opening_balance: e.target.value })} />
+          {form.id && <p className="text-xs text-muted-foreground mt-1">Changing this adjusts the current cash balance by the same difference.</p>}
+        </div>
         <div className="flex items-center gap-2"><Switch checked={form.is_active} onCheckedChange={(v) => setForm({ ...form, is_active: v })} /><Label>Active</Label></div>
       </div>
       <DialogFooter>
