@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { restaurantsQuery, vaultsQuery, vendorsQuery, purchasesQuery, paymentsQuery, vaultDepositsQuery, expensesQuery } from "@/lib/queries";
+import { restaurantsQuery, vaultsQuery, vendorsQuery, purchasesQuery, paymentsQuery, vaultDepositsQuery, expensesQuery, dailySalesQuery } from "@/lib/queries";
 import { settingsQuery } from "@/lib/settings";
 import { PageHeader, EmptyState, StatCard } from "@/components/page-shell";
 import { Button } from "@/components/ui/button";
