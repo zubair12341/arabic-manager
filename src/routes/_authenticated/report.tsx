@@ -502,7 +502,59 @@ function ReportPage() {
               </div>
             )}
           </TabsContent>
+
+          {/* DAILY CLOSING */}
+          <TabsContent value="closing">
+            <div className="flex justify-between items-center mb-3 flex-wrap gap-2">
+              <div className="text-sm text-muted-foreground">
+                Every date in the selected range — sale, cash received, payments, expenses and the cash left at the end of each day.
+              </div>
+              <Button onClick={exportClosing} disabled={closingRows.length === 0}><Download className="h-4 w-4 mr-1" /> Download Closing PDF</Button>
+            </div>
+            {closingRows.length === 0 ? <EmptyState title="No days" description="No activity in this period." /> : (
+              <div className="border rounded-lg bg-card overflow-x-auto">
+                <Table>
+                  <TableHeader><TableRow>
+                    <TableHead>Date</TableHead><TableHead>Day</TableHead>
+                    <TableHead className="text-right">Total sale</TableHead>
+                    <TableHead className="text-right">Opening cash</TableHead>
+                    <TableHead className="text-right">Received</TableHead>
+                    <TableHead className="text-right">Paid vendors</TableHead>
+                    <TableHead className="text-right">Expenses</TableHead>
+                    <TableHead className="text-right">Cash left</TableHead>
+                    <TableHead>Status</TableHead>
+                  </TableRow></TableHeader>
+                  <TableBody>
+                    {closingRows.map(r => (
+                      <TableRow key={r.date}>
+                        <TableCell>{fmtDate(r.date)}</TableCell>
+                        <TableCell className="text-muted-foreground">{dayName(r.date)}</TableCell>
+                        <TableCell className="text-right tabular-nums">{fmtMoney(r.sale?.total_sale ?? 0, sym)}</TableCell>
+                        <TableCell className="text-right tabular-nums">{fmtMoney(r.p.opening, sym)}</TableCell>
+                        <TableCell className="text-right tabular-nums">{fmtMoney(r.p.received, sym)}</TableCell>
+                        <TableCell className="text-right tabular-nums">{fmtMoney(r.p.paidVendors, sym)}</TableCell>
+                        <TableCell className="text-right tabular-nums">{fmtMoney(r.p.expenses, sym)}</TableCell>
+                        <TableCell className="text-right tabular-nums font-semibold">{fmtMoney(r.p.closing, sym)}</TableCell>
+                        <TableCell className="text-xs text-muted-foreground">{r.sale?.is_closed ? "Locked" : "Open"}</TableCell>
+                      </TableRow>
+                    ))}
+                    <TableRow className="bg-muted/40 font-semibold">
+                      <TableCell colSpan={2}>Totals</TableCell>
+                      <TableCell className="text-right tabular-nums">{fmtMoney(cTotals.sale, sym)}</TableCell>
+                      <TableCell />
+                      <TableCell className="text-right tabular-nums">{fmtMoney(cTotals.received, sym)}</TableCell>
+                      <TableCell className="text-right tabular-nums">{fmtMoney(cTotals.paid, sym)}</TableCell>
+                      <TableCell className="text-right tabular-nums">{fmtMoney(cTotals.exp, sym)}</TableCell>
+                      <TableCell className="text-right tabular-nums">{fmtMoney(closingRows[closingRows.length - 1].p.closing, sym)}</TableCell>
+                      <TableCell />
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </TabsContent>
         </Tabs>
+
       )}
     </div>
   );
