@@ -356,6 +356,8 @@ function ReportPage() {
             <TabsTrigger value="vendor">Vendor Report</TabsTrigger>
             <TabsTrigger value="cash">Cash in Hand</TabsTrigger>
             <TabsTrigger value="expenses">Expenses</TabsTrigger>
+            <TabsTrigger value="closing">Daily Closing</TabsTrigger>
+
           </TabsList>
 
           {/* DAILY */}
