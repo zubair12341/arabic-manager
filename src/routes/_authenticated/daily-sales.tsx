@@ -392,6 +392,57 @@ function DailySalesPage() {
             )}
           </Card>
 
+          {/* -------- Cash in hand by user (this date) -------- */}
+          <Card className="p-5">
+            <h2 className="font-semibold">Cash in hand by user — {fmtDate(date)}</h2>
+            <p className="text-sm text-muted-foreground mb-3">
+              What each cash-in-hand user started with, received from the day's sale and transfers, spent, and is left holding at the end of this date.
+            </p>
+            <div className="border rounded-lg overflow-x-auto">
+              <Table>
+                <TableHeader><TableRow>
+                  <TableHead>Cash user</TableHead>
+                  <TableHead className="text-right">Opening</TableHead>
+                  <TableHead className="text-right">From sale</TableHead>
+                  <TableHead className="text-right">Transfer in</TableHead>
+                  <TableHead className="text-right">Other received</TableHead>
+                  <TableHead className="text-right">Transfer out</TableHead>
+                  <TableHead className="text-right">Paid vendors</TableHead>
+                  <TableHead className="text-right">Expenses</TableHead>
+                  <TableHead className="text-right">Cash left</TableHead>
+                </TableRow></TableHeader>
+                <TableBody>
+                  {vaultBreakdown.map(({ vault, p, other }) => (
+                    <TableRow key={vault.id}>
+                      <TableCell className="font-medium">{vault.vault_user_name}</TableCell>
+                      <TableCell className="text-right tabular-nums">{fmtMoney(p.opening, sym)}</TableCell>
+                      <TableCell className="text-right tabular-nums">{fmtMoney(p.cashSale, sym)}</TableCell>
+                      <TableCell className="text-right tabular-nums">{fmtMoney(p.transfersIn, sym)}</TableCell>
+                      <TableCell className="text-right tabular-nums">{fmtMoney(other, sym)}</TableCell>
+                      <TableCell className="text-right tabular-nums">{fmtMoney(p.transfersOut, sym)}</TableCell>
+                      <TableCell className="text-right tabular-nums">{fmtMoney(p.paidVendors, sym)}</TableCell>
+                      <TableCell className="text-right tabular-nums">{fmtMoney(p.expenses, sym)}</TableCell>
+                      <TableCell className="text-right tabular-nums font-semibold">{fmtMoney(p.closing, sym)}</TableCell>
+                    </TableRow>
+                  ))}
+                  <TableRow className="bg-muted/40 font-semibold">
+                    <TableCell>Total</TableCell>
+                    <TableCell className="text-right tabular-nums">{fmtMoney(bdTotals.opening, sym)}</TableCell>
+                    <TableCell className="text-right tabular-nums">{fmtMoney(bdTotals.cashSale, sym)}</TableCell>
+                    <TableCell className="text-right tabular-nums">{fmtMoney(bdTotals.transfersIn, sym)}</TableCell>
+                    <TableCell className="text-right tabular-nums">{fmtMoney(bdTotals.other, sym)}</TableCell>
+                    <TableCell className="text-right tabular-nums">{fmtMoney(bdTotals.transfersOut, sym)}</TableCell>
+                    <TableCell className="text-right tabular-nums">{fmtMoney(bdTotals.paid, sym)}</TableCell>
+                    <TableCell className="text-right tabular-nums">{fmtMoney(bdTotals.exp, sym)}</TableCell>
+                    <TableCell className="text-right tabular-nums">{fmtMoney(bdTotals.closing, sym)}</TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
+            </div>
+          </Card>
+
+
+
           {/* -------- Today's expenses -------- */}
           <Card className="p-5">
             <div className="flex items-center justify-between mb-3">
