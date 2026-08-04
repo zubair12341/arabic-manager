@@ -264,6 +264,23 @@ function DailySalesPage() {
   const transferVaults = restVaults.filter(v => v.id !== day?.counter_vault_id);
   const vendorName = (id: string) => vendors.data?.find(v => v.id === id)?.name ?? "—";
 
+  /** Per cash-in-hand user movement for the selected date. */
+  const vaultBreakdown = useMemo(() => restVaults.map(v => {
+    const p = cashPeriod({
+      txns, vaults: vaults.data ?? [], restaurantId: restId, vaultId: v.id,
+      from: dayStart(date), to: dayEnd(date),
+    });
+    return { vault: v, p, other: p.received - p.cashSale - p.transfersIn };
+  }), [restVaults, txns, vaults.data, restId, date]);
+
+  const bdTotals = vaultBreakdown.reduce((a, r) => ({
+    opening: a.opening + r.p.opening, cashSale: a.cashSale + r.p.cashSale,
+    transfersIn: a.transfersIn + r.p.transfersIn, other: a.other + r.other,
+    transfersOut: a.transfersOut + r.p.transfersOut, paid: a.paid + r.p.paidVendors,
+    exp: a.exp + r.p.expenses, closing: a.closing + r.p.closing,
+  }), { opening: 0, cashSale: 0, transfersIn: 0, other: 0, transfersOut: 0, paid: 0, exp: 0, closing: 0 });
+
+
   const numField = (label: string, key: keyof SaleForm) => (
     <div>
       <Label>{label}</Label>
