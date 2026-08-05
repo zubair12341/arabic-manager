@@ -242,7 +242,8 @@ function ReportPage() {
       ["TOTAL CASH IN HAND AFTER RECEIVING", pdfMoney(overall.opening + overall.received)],
       ["PAID TO VENDORS (PERIOD)", pdfMoney(overall.paidVendors)],
       ["EXPENSES & OVERHEADS (PERIOD)", pdfMoney(overall.expenses)],
-      ["CURRENT / CLOSING CASH IN HAND", pdfMoney(overall.closing), true],
+      ["CLOSING CASH IN HAND (END OF PERIOD)", pdfMoney(overall.closing), true],
+      ["CASH IN HAND NOW (LIVE BALANCE)", pdfMoney(liveCash), true],
     ]);
 
     y = sectionTitle(doc, y, "Paid to vendors");
