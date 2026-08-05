@@ -271,7 +271,8 @@ function ReportPage() {
       ["TOTAL CASH IN HAND AFTER RECEIVING", pdfMoney(overall.opening + overall.received)],
       ["TOTAL PAID TO VENDORS", pdfMoney(overall.paidVendors)],
       ["TOTAL PAID + EXPENSES", pdfMoney(overall.paidVendors + overall.expenses)],
-      ["CASH IN HAND LEFT", pdfMoney(overall.closing), true],
+      ["CASH IN HAND LEFT (END OF PERIOD)", pdfMoney(overall.closing), true],
+      ["CASH IN HAND NOW (LIVE BALANCE)", pdfMoney(liveCash), true],
       ["TOTAL REMAINING PAYABLE", pdfMoney(actualPayable), true],
     ]);
 
