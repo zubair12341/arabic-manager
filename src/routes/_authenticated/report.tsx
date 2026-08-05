@@ -91,6 +91,11 @@ function ReportPage() {
     .sort((a, b) => b.remaining - a.remaining), [vendors.data, restId]);
   const actualPayable = payableRows.reduce((s, v) => s + v.remaining, 0);
 
+  /** Live cash held right now by the selected cash user(s) — not period-scoped. */
+  const liveCash = useMemo(() => (vaults.data ?? [])
+    .filter(v => v.restaurant_id === restId && (!scopedVaultId || v.id === scopedVaultId))
+    .reduce((s, v) => s + Number(v.current_balance), 0), [vaults.data, restId, scopedVaultId]);
+
   const cashRows = useMemo(() => {
     const list = txns.filter(t => t.restaurant_id === restId && (!scopedVaultId || t.vault_id === scopedVaultId)
       && (!from || t.date >= dayStart(from)) && (!to || t.date < dayEnd(to)));
@@ -237,7 +242,8 @@ function ReportPage() {
       ["TOTAL CASH IN HAND AFTER RECEIVING", pdfMoney(overall.opening + overall.received)],
       ["PAID TO VENDORS (PERIOD)", pdfMoney(overall.paidVendors)],
       ["EXPENSES & OVERHEADS (PERIOD)", pdfMoney(overall.expenses)],
-      ["CURRENT / CLOSING CASH IN HAND", pdfMoney(overall.closing), true],
+      ["CLOSING CASH IN HAND (END OF PERIOD)", pdfMoney(overall.closing), true],
+      ["CASH IN HAND NOW (LIVE BALANCE)", pdfMoney(liveCash), true],
     ]);
 
     y = sectionTitle(doc, y, "Paid to vendors");
@@ -265,7 +271,8 @@ function ReportPage() {
       ["TOTAL CASH IN HAND AFTER RECEIVING", pdfMoney(overall.opening + overall.received)],
       ["TOTAL PAID TO VENDORS", pdfMoney(overall.paidVendors)],
       ["TOTAL PAID + EXPENSES", pdfMoney(overall.paidVendors + overall.expenses)],
-      ["CASH IN HAND LEFT", pdfMoney(overall.closing), true],
+      ["CASH IN HAND LEFT (END OF PERIOD)", pdfMoney(overall.closing), true],
+      ["CASH IN HAND NOW (LIVE BALANCE)", pdfMoney(liveCash), true],
       ["TOTAL REMAINING PAYABLE", pdfMoney(actualPayable), true],
     ]);
 
@@ -440,7 +447,8 @@ function ReportPage() {
 
               <StatCard label="Paid to vendors" value={fmtMoney(overall.paidVendors, sym)} />
               <StatCard label="Expenses" value={fmtMoney(overall.expenses, sym)} />
-              <StatCard label="Cash in hand left" value={fmtMoney(overall.closing, sym)} />
+              <StatCard label="Cash in hand left (end of period)" value={fmtMoney(overall.closing, sym)} />
+              <StatCard label="Cash in hand now (live)" value={fmtMoney(liveCash, sym)} />
               <StatCard label="Total remaining payable" value={fmtMoney(actualPayable, sym)} />
             </div>
 
