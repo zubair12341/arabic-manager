@@ -91,6 +91,11 @@ function ReportPage() {
     .sort((a, b) => b.remaining - a.remaining), [vendors.data, restId]);
   const actualPayable = payableRows.reduce((s, v) => s + v.remaining, 0);
 
+  /** Live cash held right now by the selected cash user(s) — not period-scoped. */
+  const liveCash = useMemo(() => (vaults.data ?? [])
+    .filter(v => v.restaurant_id === restId && (!scopedVaultId || v.id === scopedVaultId))
+    .reduce((s, v) => s + Number(v.current_balance), 0), [vaults.data, restId, scopedVaultId]);
+
   const cashRows = useMemo(() => {
     const list = txns.filter(t => t.restaurant_id === restId && (!scopedVaultId || t.vault_id === scopedVaultId)
       && (!from || t.date >= dayStart(from)) && (!to || t.date < dayEnd(to)));
