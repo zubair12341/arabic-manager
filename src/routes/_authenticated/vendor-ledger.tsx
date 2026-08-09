@@ -11,8 +11,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Download } from "lucide-react";
 import { useMemo, useState } from "react";
 import { fmtMoney, fmtDate } from "@/lib/format";
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
+import { newDoc, docHeader, table, summaryRows, save, pdfMoney, pdfDate, pdfDateTime } from "@/lib/pdf";
+
 
 export const Route = createFileRoute("/_authenticated/vendor-ledger")({
   head: () => ({ meta: [{ title: "Vendor Ledger — Vendor & Cash Manager" }] }),
