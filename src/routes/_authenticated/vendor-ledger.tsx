@@ -99,19 +99,41 @@ function LedgerPage() {
 
   const exportPdf = () => {
     if (!vendor) return;
-    const doc = new jsPDF();
-    doc.setFontSize(14); doc.text(`Vendor Ledger — ${vendor.name}`, 14, 16);
-    doc.setFontSize(9); doc.text(`Restaurant: ${restaurants.data?.find(r => r.id === restId)?.name ?? ""}`, 14, 22);
-    if (from || to) doc.text(`Period: ${from || "—"} to ${to || "—"}`, 14, 27);
-    autoTable(doc, {
-      startY: 32,
-      head: [["Date", "Type", "Description", "Debit", "Credit", "Balance"]],
-      body: totals.rows.map(r => [fmtDate(r.entry_date), r.entry_type, r.description, fmtMoney(r.debit, sym), fmtMoney(r.credit, sym), fmtMoney(r.running, sym)]),
-      foot: [["", "", "Totals", fmtMoney(totals.debit, sym), fmtMoney(totals.credit, sym), fmtMoney(totals.closing, sym)]],
-      styles: { fontSize: 8 }, headStyles: { fillColor: [30, 41, 59] },
+    const doc = newDoc();
+    let y = docHeader(doc, {
+      title: `Vendor Ledger — ${vendor.name}`,
+      business: settings.data?.business_name ?? undefined,
+      meta: [
+        ["Vendor", vendor.name],
+        ["Restaurant", restaurants.data?.find(r => r.id === restId)?.name ?? "—"],
+        ["Period", `${from ? pdfDate(from) : "Start"} to ${to ? pdfDate(to) : "Today"}`],
+        ["Generated", pdfDateTime(new Date())],
+      ],
     });
-    doc.save(`ledger-${vendor.name}-${new Date().toISOString().slice(0, 10)}.pdf`);
+    y = table(
+      doc,
+      y,
+      ["Date", "Type", "Description", "Debit", "Credit", "Balance"],
+      totals.rows.map(r => [
+        pdfDate(r.entry_date),
+        r.entry_type === "opening" ? "Opening" : r.entry_type === "purchase" ? "Purchase" : "Payment",
+        r.description,
+        r.debit ? pdfMoney(r.debit) : "-",
+        r.credit ? pdfMoney(r.credit) : "-",
+        pdfMoney(r.running),
+      ]),
+      [["", "", "TOTALS", pdfMoney(totals.debit), pdfMoney(totals.credit), pdfMoney(totals.closing)]],
+      { align: { 3: "right", 4: "right", 5: "right" } },
+    );
+    summaryRows(doc, y, [
+      ["OPENING BALANCE", pdfMoney(vendor.opening_balance)],
+      ["TOTAL PURCHASES (DEBIT)", pdfMoney(totals.debit)],
+      ["TOTAL PAYMENTS (CREDIT)", pdfMoney(totals.credit)],
+      ["CLOSING BALANCE", pdfMoney(totals.closing), true],
+    ]);
+    save(doc, `vendor-ledger-${vendor.name}`);
   };
+
 
   return (
     <div>
